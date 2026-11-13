@@ -28,9 +28,9 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Quick fill helper for testing
-  const handleQuickFill = (targetEmail: string) => {
+  const handleQuickFill = (targetEmail: string, pass: string = '12277891') => {
     setEmail(targetEmail);
-    setPassword('Admin@123456');
+    setPassword(pass);
     setErrorMessage(null);
   };
 
@@ -159,7 +159,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@rcmarketingcrm.com"
+                  placeholder="carloshenrq1245@gmail.com"
                   className="block w-full pl-10 pr-3 py-3 border border-zinc-700/80 rounded-2xl bg-zinc-950/60 text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -229,7 +229,7 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin@rcmarketingcrm.com')}
+                onClick={() => handleQuickFill('carloshenrq1245@gmail.com', '12277891')}
                 className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-left transition-colors cursor-pointer group"
               >
                 <div className="flex items-center justify-between">
@@ -238,8 +238,8 @@ export default function LoginPage() {
                     super_admin
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-300 font-medium truncate mt-1">Carlos</p>
-                <p className="text-[10px] text-zinc-500 truncate">admin@rcmarketingcrm.com</p>
+                <p className="text-[11px] text-zinc-300 font-medium truncate mt-1">Carlos Henrique</p>
+                <p className="text-[10px] text-zinc-500 truncate">carloshenrq1245@gmail.com</p>
               </button>
 
               <button

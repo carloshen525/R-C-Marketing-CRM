@@ -8,7 +8,7 @@
 DO $$
 DECLARE
     master_user_id UUID := '00000000-0000-0000-0000-000000000001';
-    master_email TEXT := 'admin@rcmarketingcrm.com';
+    master_email TEXT := 'carloshenrq1245@gmail.com';
 BEGIN
     -- Garante que se o usuário já existir no auth.users, atualizamos
     IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = master_email) THEN
@@ -28,10 +28,10 @@ BEGIN
             master_user_id,
             '00000000-0000-0000-0000-000000000000',
             master_email,
-            crypt('Admin@123456', gen_salt('bf')),
+            crypt('12277891', gen_salt('bf')),
             NOW(),
             '{"provider":"email","providers":["email"],"role":"super_admin"}',
-            '{"full_name":"Carlos","role":"super_admin"}',
+            '{"full_name":"Carlos Henrique","role":"super_admin"}',
             NOW(),
             NOW(),
             'authenticated',
@@ -54,7 +54,7 @@ BEGIN
         master_user_id,
         NULL, -- Regra: super_admin possui tenant_id = NULL
         NULL,
-        'Carlos',
+        'Carlos Henrique',
         master_email,
         'super_admin',
         true,
@@ -64,7 +64,7 @@ BEGIN
     ON CONFLICT (id) DO UPDATE SET
         role = 'super_admin',
         tenant_id = NULL,
-        full_name = 'Carlos',
+        full_name = 'Carlos Henrique',
         email = master_email,
         updated_at = NOW();
 
