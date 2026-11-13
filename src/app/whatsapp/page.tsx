@@ -23,6 +23,7 @@ import { FacebookIcon, InstagramIcon } from '@/components/ui/icons';
 
 export default function WhatsAppPage() {
   const {
+    activeCompany,
     whatsappInstance,
     updateWhatsAppStatus,
     leads,
@@ -40,6 +41,37 @@ export default function WhatsAppPage() {
   const [qrError, setQrError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  const effectiveInstanceName =
+    (whatsappInstance.instance_name || activeCompany.subdomain || `inst_${activeCompany.id || 'default'}`).trim();
+
+  // Auto-poll WhatsApp connection status while QR code modal is open
+  React.useEffect(() => {
+    if (!showQrModal) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/whatsapp/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instanceName: effectiveInstanceName,
+            apiUrl: whatsappInstance.api_url,
+            apiKey: whatsappInstance.api_key,
+          }),
+        });
+        const data = await res.json();
+        if (data.connected) {
+          updateWhatsAppStatus('connected');
+          setShowQrModal(false);
+        }
+      } catch (e) {
+        // silent polling
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [showQrModal, effectiveInstanceName, whatsappInstance.api_url, whatsappInstance.api_key, updateWhatsAppStatus]);
 
   const activeLead = leads.find((l) => l.id === activeChatLeadId) || leads[0];
   const activeChat = activeLead ? conversations[activeLead.id] || [] : [];
@@ -75,7 +107,7 @@ export default function WhatsAppPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instanceName: whatsappInstance.instance_name || 'Carlos1',
+          instanceName: effectiveInstanceName,
           apiUrl: whatsappInstance.api_url,
           apiKey: whatsappInstance.api_key,
         }),
@@ -91,6 +123,8 @@ export default function WhatsAppPage() {
         updateWhatsAppStatus('qrcode');
       } else if (data.error) {
         setQrError(data.error);
+      } else {
+        setQrError(data.message || 'Aguardando inicialização da instância na Evolution API. Tente novamente em alguns segundos.');
       }
     } catch (err: any) {
       setQrError(err.message || 'Falha ao gerar QR Code na Evolution API');

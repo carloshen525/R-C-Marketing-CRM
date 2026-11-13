@@ -24,6 +24,37 @@ export default function ClienteIntegracoesPage() {
   const [qrError, setQrError] = useState<string | null>(null);
   const [supportRequested, setSupportRequested] = useState(false);
 
+  const effectiveInstanceName =
+    (whatsappInstance.instance_name || activeCompany.subdomain || `inst_${activeCompany.id || 'default'}`).trim();
+
+  // Auto-poll WhatsApp connection status while QR code modal is open
+  React.useEffect(() => {
+    if (!showQrModal) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/whatsapp/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instanceName: effectiveInstanceName,
+            apiUrl: whatsappInstance.api_url,
+            apiKey: whatsappInstance.api_key,
+          }),
+        });
+        const data = await res.json();
+        if (data.connected) {
+          updateWhatsAppStatus('connected');
+          setShowQrModal(false);
+        }
+      } catch (e) {
+        // silent polling
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [showQrModal, effectiveInstanceName, whatsappInstance.api_url, whatsappInstance.api_key, updateWhatsAppStatus]);
+
   const handleReconnect = async () => {
     setIsRefreshing(true);
     await handleOpenQr();
@@ -40,7 +71,7 @@ export default function ClienteIntegracoesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instanceName: whatsappInstance.instance_name || 'Carlos1',
+          instanceName: effectiveInstanceName,
           apiUrl: whatsappInstance.api_url,
           apiKey: whatsappInstance.api_key,
         }),
@@ -56,6 +87,8 @@ export default function ClienteIntegracoesPage() {
         updateWhatsAppStatus('qrcode');
       } else if (data.error) {
         setQrError(data.error);
+      } else {
+        setQrError(data.message || 'Aguardando inicialização da instância na Evolution API. Tente novamente em alguns segundos.');
       }
     } catch (err: any) {
       setQrError(err.message || 'Falha ao gerar QR Code na Evolution API');

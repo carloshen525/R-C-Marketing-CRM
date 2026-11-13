@@ -97,6 +97,24 @@ export default function MasterEmpresasPage() {
   const [selectedCompanyForEvo, setSelectedCompanyForEvo] = useState<Company | null>(null);
   const [selectedCompanyForMeta, setSelectedCompanyForMeta] = useState<Company | null>(null);
 
+  // Evolution instances list from server
+  const [availableEvoInstances, setAvailableEvoInstances] = useState<any[]>([]);
+  const [loadingEvoInstances, setLoadingEvoInstances] = useState(false);
+
+  useEffect(() => {
+    if (!selectedCompanyForEvo) return;
+    setLoadingEvoInstances(true);
+    fetch('/api/whatsapp/instances')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.instances) {
+          setAvailableEvoInstances(data.instances);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingEvoInstances(false));
+  }, [selectedCompanyForEvo]);
+
   const instances = getAllWhatsAppInstances();
   const metaIntegrations = getAllMetaIntegrations();
 
@@ -918,6 +936,47 @@ export default function MasterEmpresasPage() {
                   }
                   className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono font-bold"
                 />
+
+                {/* Evolution Instance Quick Selector */}
+                <div className="mt-2 space-y-1.5">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                    Instâncias existentes na Evolution API:
+                  </span>
+                  {loadingEvoInstances ? (
+                    <span className="text-[11px] text-zinc-400">Consultando Evolution API...</span>
+                  ) : availableEvoInstances.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateTenantEvolutionConfig(selectedCompanyForEvo.id, {
+                            instance_name: selectedCompanyForEvo.subdomain,
+                          })
+                        }
+                        className="px-2 py-1 rounded-lg text-[10px] font-bold border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100"
+                      >
+                        ⚡ Automática ({selectedCompanyForEvo.subdomain})
+                      </button>
+                      {availableEvoInstances.map((inst: any) => (
+                        <button
+                          key={inst.id || inst.name}
+                          type="button"
+                          onClick={() =>
+                            updateTenantEvolutionConfig(selectedCompanyForEvo.id, {
+                              instance_name: inst.name,
+                            })
+                          }
+                          className="px-2 py-1 rounded-lg text-[10px] font-bold border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 hover:bg-zinc-100 text-zinc-800 dark:text-zinc-200 flex items-center gap-1"
+                        >
+                          <span>{inst.name}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${inst.connectionStatus === 'open' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-zinc-400">Nenhuma instância cadastrada ainda. Uma nova será criada automaticamente ao conectar.</span>
+                  )}
+                </div>
               </div>
 
               <div>
