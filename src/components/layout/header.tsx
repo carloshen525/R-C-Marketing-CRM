@@ -85,7 +85,7 @@ export function Header() {
           {isSuperAdmin ? (
             <>
               <Link
-                href="/master/empresas"
+                href="/admin/empresas"
                 className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition-all"
               >
                 <Plus className="w-4 h-4" />
@@ -94,21 +94,10 @@ export function Header() {
             </>
           ) : (
             <>
-              {/* Client Quick CTWA Lead Simulator Button */}
-              <button
-                onClick={handleSimulateCtwa}
-                disabled={isSimulating}
-                className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/80 text-xs font-bold flex items-center gap-1.5 transition-colors"
-                title="Simula a chegada de uma nova mensagem via anúncio Click-to-WhatsApp (Meta CTWA) com disparo de LeadSubmitted"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                {isSimulating ? 'Simulando...' : 'Simular Lead CTWA'}
-              </button>
-
               {/* Client New Lead Manual Button */}
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 Novo Lead

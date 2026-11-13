@@ -371,15 +371,15 @@ export default function WhatsAppPage() {
             <div className="pt-2 flex flex-col gap-2">
               <button
                 onClick={handleQrScanned}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20"
+                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 cursor-pointer"
               >
-                Simular QR Escaneado (Conectar)
+                Confirmar Conexão do Aparelho
               </button>
               <button
                 onClick={() => setShowQrModal(false)}
-                className="w-full py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-xs font-medium"
+                className="w-full py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 text-xs font-medium cursor-pointer"
               >
-                Cancelar
+                Fechar
               </button>
             </div>
           </div>

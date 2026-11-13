@@ -28,22 +28,37 @@ export function middleware(req: NextRequest) {
   const isAdminRoute =
     pathname.startsWith('/admin') ||
     pathname.startsWith('/master') ||
-    pathname.startsWith('/super-admin');
+    pathname.startsWith('/super-admin') ||
+    pathname.startsWith('/settings/global');
 
   // Rule 1: Master Admin domain access
   const isMasterDomain = currentSubdomain === 'admin';
 
-  // Rule 2: If client user tries to access /admin or /master, BLOCK immediately
+  // Rule 2: If accessing admin route:
+  // - If not logged in at all, redirect to /login
+  // - If logged in as client (non-superadmin), redirect to /acesso-negado (403)
   if (isAdminRoute) {
-    if (userRole && userRole !== 'super_admin' && userRole !== 'master_admin') {
+    if (!userRole) {
+      const loginUrl = new URL('/login', req.url);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (userRole !== 'super_admin' && userRole !== 'master_admin') {
       const deniedUrl = new URL('/acesso-negado', req.url);
       return NextResponse.redirect(deniedUrl);
     }
   }
 
-  // Rule 3: If on admin subdomain and accessing client root, route to /admin
+  // Rule 3: If on client subdomain, block access to any admin routes and ensure tenant isolation
+  if (currentSubdomain && currentSubdomain !== 'admin' && currentSubdomain !== 'app') {
+    if (isAdminRoute) {
+      const clientDashboardUrl = new URL('/dashboard', req.url);
+      return NextResponse.redirect(clientDashboardUrl);
+    }
+  }
+
+  // Rule 4: If on admin subdomain and accessing client root, route to /admin/dashboard
   if (isMasterDomain && pathname === '/') {
-    const adminUrl = new URL('/admin', req.url);
+    const adminUrl = new URL('/admin/dashboard', req.url);
     return NextResponse.redirect(adminUrl);
   }
 

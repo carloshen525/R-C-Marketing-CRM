@@ -28,11 +28,9 @@ export function Sidebar() {
     activeCompany,
     currentUser,
     users,
-    setCurrentUserRole,
   } = useCRM();
 
   const [isDarkMode, setIsDarkMode] = React.useState(false);
-  const [showSessionSwitcher, setShowSessionSwitcher] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -162,91 +160,27 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer: Theme, Session Switcher for Testing & Active User */}
+      {/* Footer: Theme & Active User */}
       <div className="p-3 border-t border-zinc-800 bg-zinc-950/70 space-y-2 text-xs">
         <div className="flex items-center justify-between text-[11px] text-zinc-400 font-semibold px-1">
-          <button
-            onClick={() => setShowSessionSwitcher(!showSessionSwitcher)}
-            className="text-[10px] text-zinc-400 hover:text-emerald-400 flex items-center gap-1 font-bold"
-            title="Alternar usuário de teste para validação de segurança"
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            Trocar Usuário (Teste)
-          </button>
+          <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+            {isSuperAdmin ? 'Master Admin' : 'Painel Cliente'}
+          </span>
           <button
             onClick={toggleTheme}
-            className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            className="p-1 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
             title="Alternar Tema Claro / Escuro"
           >
             {isDarkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
           </button>
         </div>
 
-        {/* Security Role Switcher Panel for Testing Isolation */}
-        {showSessionSwitcher && (
-          <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1.5 text-[11px]">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">
-              Simular Acesso de Usuário:
-            </span>
-
-            {/* Master Super Admin */}
-            <button
-              onClick={() => {
-                setCurrentUserRole('super_admin');
-                setShowSessionSwitcher(false);
-              }}
-              className={`w-full text-left p-1.5 rounded-lg flex items-center justify-between ${
-                isSuperAdmin
-                  ? 'bg-purple-900/50 text-purple-300 font-bold border border-purple-700/50'
-                  : 'hover:bg-zinc-800 text-zinc-400'
-              }`}
-            >
-              <span>Rodrigo (Master Admin)</span>
-              <span className="text-[9px] bg-purple-950 px-1 py-0.2 rounded text-purple-400 font-mono">super_admin</span>
-            </button>
-
-            {/* Client Admin (Terra e Silva) */}
-            <button
-              onClick={() => {
-                setCurrentUserRole('client_admin');
-                setShowSessionSwitcher(false);
-              }}
-              className={`w-full text-left p-1.5 rounded-lg flex items-center justify-between ${
-                currentUser.role === 'client_admin'
-                  ? 'bg-emerald-900/50 text-emerald-300 font-bold border border-emerald-700/50'
-                  : 'hover:bg-zinc-800 text-zinc-400'
-              }`}
-            >
-              <span>Helena (Terra e Silva)</span>
-              <span className="text-[9px] bg-emerald-950 px-1 py-0.2 rounded text-emerald-400 font-mono">client_admin</span>
-            </button>
-
-            {/* Client User / Agent (Terra e Silva) */}
-            <button
-              onClick={() => {
-                setCurrentUserRole('user');
-                setShowSessionSwitcher(false);
-              }}
-              className={`w-full text-left p-1.5 rounded-lg flex items-center justify-between ${
-                currentUser.role === 'user'
-                  ? 'bg-blue-900/50 text-blue-300 font-bold border border-blue-700/50'
-                  : 'hover:bg-zinc-800 text-zinc-400'
-              }`}
-            >
-              <span>Renata (Atendente)</span>
-              <span className="text-[9px] bg-blue-950 px-1 py-0.2 rounded text-blue-400 font-mono">user</span>
-            </button>
-          </div>
-        )}
-
         {/* User Card */}
         <div className="flex items-center gap-2.5 pt-1 px-1">
-          <img
-            src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60'}
-            alt={currentUser.full_name}
-            className="w-7 h-7 rounded-full object-cover ring-1 ring-zinc-700"
-          />
-          <div className="overflow-hidden leading-tight">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold text-xs ring-1 ring-zinc-700">
+            {currentUser.full_name.charAt(0)}
+          </div>
+          <div className="overflow-hidden leading-tight flex-1">
             <p className="text-xs font-bold text-zinc-200 truncate">{currentUser.full_name}</p>
             <p className="text-[10px] text-zinc-400">
               {isSuperAdmin
@@ -256,6 +190,13 @@ export function Sidebar() {
                 : 'Atendente'}
             </p>
           </div>
+          <Link
+            href="/login"
+            className="text-[10px] text-zinc-400 hover:text-rose-400 font-semibold transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-800"
+            title="Sair da Plataforma"
+          >
+            Sair
+          </Link>
         </div>
       </div>
     </aside>

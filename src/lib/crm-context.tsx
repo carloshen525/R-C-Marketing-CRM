@@ -19,18 +19,18 @@ import {
   CompanyStatus,
 } from './types';
 import {
-  mockCompanies,
-  mockProfiles,
-  mockWhatsAppInstances,
-  mockMetaIntegrations,
-  mockStages,
+  initialCompanies,
+  initialProfiles,
+  initialWhatsAppInstances,
+  initialMetaIntegrations,
+  defaultPipelineStages,
+  defaultTags,
   initialLeads,
-  mockTags,
-  mockConversations,
-  mockMetaConversions,
-  mockDashboardMetrics,
-  mockMasterSaaSMetrics,
-} from './mock-data';
+  initialConversations,
+  initialMetaLogs,
+  initialDashboardMetrics,
+  initialMasterSaaSMetrics,
+} from './initial-data';
 import { MetaConversionsService } from './meta/conversions-api.service';
 
 export type EnvironmentMode = 'client' | 'master';
@@ -108,24 +108,24 @@ interface CRMContextType {
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
 
 export function CRMProvider({ children }: { children: React.ReactNode }) {
-  // All system data in memory
-  const [allCompanies, setAllCompanies] = useState<Company[]>(mockCompanies);
-  const [allUsers, setAllUsers] = useState<Profile[]>(mockProfiles);
+  // All system data in memory - Starts Clean for Real Production
+  const [allCompanies, setAllCompanies] = useState<Company[]>(initialCompanies);
+  const [allUsers, setAllUsers] = useState<Profile[]>(initialProfiles);
   const [allLeads, setAllLeads] = useState<Lead[]>(initialLeads);
-  const [tenantEvolutionConfigs, setTenantEvolutionConfigs] = useState<Record<string, WhatsAppInstance>>(mockWhatsAppInstances);
-  const [tenantMetaConfigs, setTenantMetaConfigs] = useState<Record<string, MetaIntegration>>(mockMetaIntegrations);
-  const [conversations, setConversations] = useState<Record<string, Message[]>>(mockConversations);
-  const [metaLogs, setMetaLogs] = useState<MetaConversionLog[]>(mockMetaConversions);
-  const [masterMetrics, setMasterMetrics] = useState<MasterSaaSMetrics>(mockMasterSaaSMetrics);
-  const [stages, setStages] = useState<PipelineStage[]>(mockStages);
-  const [tags] = useState<Tag[]>(mockTags);
-  const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics>(mockDashboardMetrics);
+  const [tenantEvolutionConfigs, setTenantEvolutionConfigs] = useState<Record<string, WhatsAppInstance>>(initialWhatsAppInstances);
+  const [tenantMetaConfigs, setTenantMetaConfigs] = useState<Record<string, MetaIntegration>>(initialMetaIntegrations);
+  const [conversations, setConversations] = useState<Record<string, Message[]>>(initialConversations);
+  const [metaLogs, setMetaLogs] = useState<MetaConversionLog[]>(initialMetaLogs);
+  const [masterMetrics, setMasterMetrics] = useState<MasterSaaSMetrics>(initialMasterSaaSMetrics);
+  const [stages, setStages] = useState<PipelineStage[]>(defaultPipelineStages);
+  const [tags] = useState<Tag[]>(defaultTags);
+  const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics>(initialDashboardMetrics);
 
-  // Current active user: Defaults to Client Admin (Helena - Terra e Silva) to verify client experience out of the box!
-  const [currentUser, setCurrentUser] = useState<Profile>(mockProfiles[1]); // Helena (client_admin)
+  // Current active user: Defaults to Carlos Henrique (Super Admin Owner)
+  const [currentUser, setCurrentUser] = useState<Profile>(initialProfiles[0]);
 
   // Current selected company ID
-  const [activeCompanyId, setActiveCompanyIdState] = useState<string>(mockCompanies[0].id);
+  const [activeCompanyId, setActiveCompanyIdState] = useState<string>('');
 
   // Modals & Drawers
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -151,11 +151,28 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     if (!isSuperAdmin && currentUser.tenant_id) {
       return currentUser.tenant_id;
     }
-    return activeCompanyId;
-  }, [isSuperAdmin, currentUser.tenant_id, activeCompanyId]);
+    return activeCompanyId || (allCompanies[0]?.id || '');
+  }, [isSuperAdmin, currentUser.tenant_id, activeCompanyId, allCompanies]);
 
-  const activeCompany = useMemo(() => {
-    return allCompanies.find((c) => c.id === resolvedCompanyId) || allCompanies[0];
+  const activeCompany: Company = useMemo(() => {
+    const found = allCompanies.find((c) => c.id === resolvedCompanyId);
+    if (found) return found;
+    return {
+      id: '',
+      name: 'R&C Marketing',
+      trade_name: 'R&C Marketing CRM',
+      slug: 'rcmarketing',
+      subdomain: 'app',
+      full_subdomain: 'app.rcmarketingcrm.com.br',
+      owner_name: 'Carlos Henrique',
+      email: 'carloshenrq1245@gmail.com',
+      phone: '+55 62 8200-2147',
+      plan: 'enterprise',
+      status: 'active',
+      timezone: 'America/Sao_Paulo',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    };
   }, [allCompanies, resolvedCompanyId]);
 
   const setActiveCompanyId = (companyId: string) => {
@@ -195,7 +212,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   // WhatsApp & Meta for active company
   const whatsappInstance = tenantEvolutionConfigs[activeCompany.id] || {
-    id: `inst_${activeCompany.id}`,
+    id: `inst_${activeCompany.id || 'default'}`,
     company_id: activeCompany.id,
     instance_name: activeCompany.subdomain,
     api_url: 'https://prospeccao-evolution01.pesd8y.easypanel.host',
@@ -205,12 +222,12 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     profile_name: activeCompany.name,
     last_sync_at: 'Hoje às 09:00',
     is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
   };
 
   const metaIntegration = tenantMetaConfigs[activeCompany.id] || {
-    id: `meta_${activeCompany.id}`,
+    id: `meta_${activeCompany.id || 'default'}`,
     company_id: activeCompany.id,
     pixel_id: '891049281729381',
     access_token: 'EAAG9...live_capi_token',
@@ -218,8 +235,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     graph_api_version: 'v20.0',
     last_conversion_sent_at: 'Hoje às 10:32',
     is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
   };
 
   // Client-Safe Integration Status
@@ -680,7 +697,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       phone: leadData.phone || '5511999999999',
       email: leadData.email,
       avatar_url: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80`,
-      tags: isOrganic ? [mockTags[4]] : [mockTags[0]],
+      tags: isOrganic ? [tags[3] || tags[0]] : [tags[0]],
       is_organic: isOrganic,
       ctwa_clid: leadData.ctwa_clid,
       source_id: leadData.source_id,

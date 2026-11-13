@@ -27,13 +27,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Quick fill helper for testing
-  const handleQuickFill = (targetEmail: string, pass: string = '12277891') => {
-    setEmail(targetEmail);
-    setPassword(pass);
-    setErrorMessage(null);
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -220,44 +213,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Quick Login Access Cards for Testing Credentials */}
-          <div className="mt-8 pt-6 border-t border-zinc-800">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-3 text-center">
-              Acesso Rápido para Demonstração
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('carloshenrq1245@gmail.com', '12277891')}
-                className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-left transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-emerald-400">👑 Master Admin</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
-                    super_admin
-                  </span>
-                </div>
-                <p className="text-[11px] text-zinc-300 font-medium truncate mt-1">Carlos Henrique</p>
-                <p className="text-[10px] text-zinc-500 truncate">carloshenrq1245@gmail.com</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill('helena@terraesilva.com.br')}
-                className="p-3 rounded-xl border border-zinc-700/60 bg-zinc-800/40 hover:bg-zinc-800 text-left transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-zinc-300">🏢 Cliente CRM</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-700 text-zinc-300 font-mono">
-                    client_admin
-                  </span>
-                </div>
-                <p className="text-[11px] text-zinc-300 font-medium truncate mt-1">Helena (Terra & Silva)</p>
-                <p className="text-[10px] text-zinc-500 truncate">helena@terraesilva.com.br</p>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Security badge footer */}
