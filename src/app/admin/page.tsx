@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCRM } from '@/lib/crm-context';
-import MasterDashboardPage from '../master/page';
+import MasterDashboardPage from '@/app/admin/dashboard/page';
 
 export default function AdminCanonicalPage() {
   const router = useRouter();
@@ -14,6 +14,8 @@ export default function AdminCanonicalPage() {
   useEffect(() => {
     if (!isSuperAdmin) {
       router.replace('/acesso-negado');
+    } else {
+      router.replace('/admin/dashboard');
     }
   }, [isSuperAdmin, router]);
 

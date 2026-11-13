@@ -79,13 +79,13 @@ export const mockCompanies: Company[] = [
 export const mockCompany: Company = mockCompanies[0]; // Default to Terra e Silva for client portal view
 
 export const mockProfiles: Profile[] = [
-  // Master Admin (R&C Marketing internal staff - tenant_id = null)
+  // Master Admin (R&C Marketing Owner - tenant_id = null)
   {
-    id: 'user_master_01',
+    id: 'user_master_carlos',
     tenant_id: null,
-    company_id: 'comp_rc_01',
-    full_name: 'Rodrigo Costa (R&C Master)',
-    email: 'admin.master@rcmarketing.com.br',
+    company_id: null,
+    full_name: 'Carlos',
+    email: 'admin@rcmarketingcrm.com',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
     role: 'super_admin',
     is_active: true,

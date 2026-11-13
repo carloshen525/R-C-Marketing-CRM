@@ -71,6 +71,8 @@ interface CRMContextType {
   // Standard CRM State (Strictly filtered by tenant_id)
   currentUser: Profile;
   setCurrentUserRole: (role: UserRole) => void;
+  setCurrentUserDirectly: (user: Profile) => void;
+  allUsers: Profile[];
   users: Profile[];
   leads: Lead[];
   stages: PipelineStage[];
@@ -245,6 +247,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Role Switcher (Simulates login sessions)
+  const setCurrentUserDirectly = (user: Profile) => {
+    setCurrentUser(user);
+    if (user.company_id) {
+      setActiveCompanyIdState(user.company_id);
+    }
+  };
+
   const setCurrentUserRole = (role: UserRole) => {
     if (role === 'super_admin' || role === 'master_admin') {
       const superUser = allUsers.find((u) => u.role === 'super_admin' || u.role === 'master_admin') || allUsers[0];
@@ -782,6 +791,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         clientIntegrationStatus,
         currentUser,
         setCurrentUserRole,
+        setCurrentUserDirectly,
+        allUsers,
         users,
         leads,
         stages,

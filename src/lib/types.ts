@@ -37,7 +37,7 @@ export interface Company {
 export interface Profile {
   id: string;
   tenant_id: string | null; // NULL for super_admin, mandatory UUID for clients
-  company_id: string; // Alias for backward compatibility
+  company_id: string | null; // NULL for super_admin, company UUID for clients
   name?: string;
   full_name: string;
   email: string;

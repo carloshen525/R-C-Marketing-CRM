@@ -125,6 +125,15 @@ export function Header() {
               ? 'Admin Cliente'
               : 'Atendente'}
           </div>
+
+          {/* Login / Sair shortcut */}
+          <Link
+            href="/login"
+            className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 transition-colors"
+            title="Ir para tela de Login / Trocar de Conta"
+          >
+            Sair
+          </Link>
         </div>
       </header>
 

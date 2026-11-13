@@ -18,6 +18,7 @@ import {
   Moon,
   UserCheck,
   Users,
+  Settings,
 } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 
@@ -65,11 +66,14 @@ export function Sidebar() {
   ];
 
   // Navigation Links for Master Panel (ONLY visible if super_admin)
+  // Matching user requested menu: Dashboard, Empresas, Usuários, Instâncias WhatsApp, Integrações Meta, Configurações SaaS
   const masterNavItems = [
-    { label: 'Visão Geral SaaS', href: '/admin', icon: LayoutDashboard },
-    { label: 'Empresas & Clientes', href: '/master/empresas', icon: Building2 },
-    { label: 'Instâncias WhatsApp', href: '/master/whatsapp', icon: MessageSquare },
-    { label: 'Meta Ads & CAPI', href: '/master/meta-ads', icon: ShieldCheck },
+    { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+    { label: 'Empresas', href: '/admin/empresas', icon: Building2 },
+    { label: 'Usuários', href: '/admin/usuarios', icon: Users },
+    { label: 'Instâncias WhatsApp', href: '/admin/whatsapp', icon: MessageSquare },
+    { label: 'Integrações Meta', href: '/admin/meta-ads', icon: ShieldCheck },
+    { label: 'Configurações SaaS', href: '/admin/configuracoes', icon: Settings },
   ];
 
   const currentNavItems = isSuperAdmin ? masterNavItems : clientNavItems;
