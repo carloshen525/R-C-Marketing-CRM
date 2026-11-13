@@ -27,6 +27,7 @@ export interface Company {
   email: string;
   phone: string; // WhatsApp
   plan: SaaSPlan;
+  monthly_price?: number; // Valor mensal personalizado em R$
   status: CompanyStatus;
   logo_url?: string;
   timezone: string;

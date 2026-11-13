@@ -52,8 +52,10 @@ interface CRMContextType {
     email: string;
     phone: string;
     plan: SaaSPlan;
+    monthly_price?: number;
     status: CompanyStatus;
     custom_subdomain?: string;
+    custom_password?: string;
   }) => Promise<{ company: Company; initialUser: Profile; tempPassword: string }>;
   updateCompany: (id: string, partial: Partial<Company>) => void;
   toggleCompanyStatus: (id: string) => void;
@@ -123,6 +125,77 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   // Current active user: Defaults to Carlos Henrique (Super Admin Owner)
   const [currentUser, setCurrentUser] = useState<Profile>(initialProfiles[0]);
+
+  // Synchronize state with localStorage for persistent client logins in SaaS
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedCompanies = localStorage.getItem('rc_companies');
+        if (savedCompanies) {
+          setAllCompanies(JSON.parse(savedCompanies));
+        }
+        const savedUsers = localStorage.getItem('rc_users');
+        if (savedUsers) {
+          setAllUsers(JSON.parse(savedUsers));
+        }
+        const savedInstances = localStorage.getItem('rc_instances');
+        if (savedInstances) {
+          setTenantEvolutionConfigs(JSON.parse(savedInstances));
+        }
+        const savedMeta = localStorage.getItem('rc_meta');
+        if (savedMeta) {
+          setTenantMetaConfigs(JSON.parse(savedMeta));
+        }
+        const savedActiveUser = localStorage.getItem('rc_current_user');
+        if (savedActiveUser) {
+          setCurrentUser(JSON.parse(savedActiveUser));
+        }
+      } catch (e) {
+        console.error('Failed to load state from localStorage', e);
+      }
+    }
+  }, []);
+
+  // Save changes to localStorage whenever companies or users change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && allCompanies.length > 0) {
+      try {
+        localStorage.setItem('rc_companies', JSON.stringify(allCompanies));
+      } catch (e) {}
+    }
+  }, [allCompanies]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && allUsers.length > 0) {
+      try {
+        localStorage.setItem('rc_users', JSON.stringify(allUsers));
+      } catch (e) {}
+    }
+  }, [allUsers]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('rc_instances', JSON.stringify(tenantEvolutionConfigs));
+      } catch (e) {}
+    }
+  }, [tenantEvolutionConfigs]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('rc_meta', JSON.stringify(tenantMetaConfigs));
+      } catch (e) {}
+    }
+  }, [tenantMetaConfigs]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentUser) {
+      try {
+        localStorage.setItem('rc_current_user', JSON.stringify(currentUser));
+      } catch (e) {}
+    }
+  }, [currentUser]);
 
   // Current selected company ID
   const [activeCompanyId, setActiveCompanyIdState] = useState<string>('');
@@ -292,8 +365,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     email: string;
     phone: string;
     plan: SaaSPlan;
+    monthly_price?: number;
     status: CompanyStatus;
     custom_subdomain?: string;
+    custom_password?: string;
   }) => {
     if (!isSuperAdmin) {
       throw new Error('Acesso Negado: Operação restrita a super_admin.');
@@ -312,7 +387,9 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
     const full_subdomain = `${subdomain}.rcmarketingcrm.com.br`;
     const companyId = `comp_${subdomain}_${Date.now()}`;
-    const tempPassword = `Rc#${Math.floor(100000 + Math.random() * 900000)}`;
+    const tempPassword = data.custom_password && data.custom_password.trim().length >= 6
+      ? data.custom_password.trim()
+      : `Rc#${Math.floor(100000 + Math.random() * 900000)}`;
 
     const newCompany: Company = {
       id: companyId,
@@ -328,6 +405,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       email: data.email,
       phone: data.phone,
       plan: data.plan,
+      monthly_price: data.monthly_price !== undefined ? data.monthly_price : (data.plan === 'enterprise' ? 1490 : data.plan === 'pro' ? 890 : 490),
       status: data.status,
       timezone: 'America/Sao_Paulo',
       created_at: new Date().toISOString(),

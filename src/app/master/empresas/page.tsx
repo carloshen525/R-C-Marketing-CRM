@@ -70,6 +70,8 @@ export default function MasterEmpresasPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [plan, setPlan] = useState<SaaSPlan>('pro');
+  const [monthlyPrice, setMonthlyPrice] = useState<number>(890);
+  const [customPassword, setCustomPassword] = useState('');
   const [status, setStatus] = useState<CompanyStatus>('active');
   const [customSubdomain, setCustomSubdomain] = useState('');
   const [isSubdomainManual, setIsSubdomainManual] = useState(false);
@@ -80,10 +82,20 @@ export default function MasterEmpresasPage() {
     companyName: string;
   } | null>(null);
 
+  // Edit Company Modal state
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editTradeName, setEditTradeName] = useState('');
+  const [editOwnerName, setEditOwnerName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editPlan, setEditPlan] = useState<SaaSPlan>('pro');
+  const [editMonthlyPrice, setEditMonthlyPrice] = useState<number>(890);
+  const [editStatus, setEditStatus] = useState<CompanyStatus>('active');
+
   // Technical Modals state
   const [selectedCompanyForEvo, setSelectedCompanyForEvo] = useState<Company | null>(null);
   const [selectedCompanyForMeta, setSelectedCompanyForMeta] = useState<Company | null>(null);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
 
   const instances = getAllWhatsAppInstances();
   const metaIntegrations = getAllMetaIntegrations();
@@ -128,12 +140,17 @@ export default function MasterEmpresasPage() {
       email,
       phone,
       plan,
+      monthly_price: monthlyPrice,
       status,
       custom_subdomain: effectiveSubdomain,
+      custom_password: customPassword || undefined,
     });
 
+    const isCurrentHost = typeof window !== 'undefined' ? window.location.origin : 'https://prospeccao-recmarketingcrm.pesd8y.easypanel.host';
+    const clientAccessUrl = `${isCurrentHost}/login`;
+
     setCreatedCredentials({
-      url: `https://${res.company.full_subdomain}`,
+      url: clientAccessUrl,
       email: res.initialUser.email,
       tempPass: res.tempPassword,
       companyName: res.company.name,
@@ -145,8 +162,39 @@ export default function MasterEmpresasPage() {
     setOwnerName('');
     setEmail('');
     setPhone('');
+    setCustomPassword('');
     setCustomSubdomain('');
     setIsSubdomainManual(false);
+  };
+
+  const handleStartEdit = (company: Company) => {
+    setEditingCompany(company);
+    setEditName(company.name);
+    setEditTradeName(company.trade_name || '');
+    setEditOwnerName(company.owner_name);
+    setEditEmail(company.email);
+    setEditPhone(company.phone);
+    setEditPlan(company.plan);
+    setEditMonthlyPrice(company.monthly_price !== undefined ? company.monthly_price : (company.plan === 'enterprise' ? 1490 : company.plan === 'pro' ? 890 : 490));
+    setEditStatus(company.status);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCompany) return;
+
+    updateCompany(editingCompany.id, {
+      name: editName,
+      trade_name: editTradeName || editName,
+      owner_name: editOwnerName,
+      email: editEmail,
+      phone: editPhone,
+      plan: editPlan,
+      monthly_price: editMonthlyPrice,
+      status: editStatus,
+    });
+
+    setEditingCompany(null);
   };
 
   const handleOpenClientPanel = (companyId: string) => {
@@ -285,6 +333,9 @@ export default function MasterEmpresasPage() {
                       <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                         {c.plan}
                       </span>
+                      <div className="text-[11px] font-bold text-emerald-600 mt-1">
+                        R$ {c.monthly_price !== undefined ? c.monthly_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : (c.plan === 'enterprise' ? '1.490,00' : c.plan === 'pro' ? '890,00' : '490,00')}/mês
+                      </div>
                     </td>
 
                     {/* WhatsApp Evolution instance info */}
@@ -343,6 +394,15 @@ export default function MasterEmpresasPage() {
                       >
                         <ExternalLink className="w-3 h-3" />
                         Painel do Cliente
+                      </button>
+
+                      {/* Edit Company */}
+                      <button
+                        onClick={() => handleStartEdit(c)}
+                        className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        title="Editar Informações da Empresa"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
                       </button>
 
                       {/* Suspend / Activate */}
@@ -576,21 +636,44 @@ export default function MasterEmpresasPage() {
                     </div>
                   </div>
 
-                  {/* Plan & Status */}
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Plan & Status & Custom Pricing */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
-                        Plano Contratado *
+                        Plano Base *
                       </label>
                       <select
                         value={plan}
-                        onChange={(e) => setPlan(e.target.value as SaaSPlan)}
+                        onChange={(e) => {
+                          const newPlan = e.target.value as SaaSPlan;
+                          setPlan(newPlan);
+                          setMonthlyPrice(newPlan === 'enterprise' ? 1490 : newPlan === 'pro' ? 890 : 490);
+                        }}
                         className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold"
                       >
-                        <option value="starter">Starter (R$ 490/mês)</option>
-                        <option value="pro">Pro (R$ 890/mês)</option>
-                        <option value="enterprise">Enterprise (R$ 1.490/mês)</option>
+                        <option value="starter">Starter</option>
+                        <option value="pro">Pro</option>
+                        <option value="enterprise">Enterprise</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                        Valor Mensal (R$) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-xs font-bold text-zinc-400">R$</span>
+                        <input
+                          type="number"
+                          required
+                          step="10"
+                          min="0"
+                          value={monthlyPrice}
+                          onChange={(e) => setMonthlyPrice(Number(e.target.value))}
+                          className="w-full pl-9 pr-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold font-mono"
+                        />
+                      </div>
+                      <span className="text-[10px] text-zinc-400">Edição manual permitida</span>
                     </div>
 
                     <div>
@@ -607,6 +690,21 @@ export default function MasterEmpresasPage() {
                         <option value="suspended">Suspensa</option>
                       </select>
                     </div>
+                  </div>
+
+                  {/* Optional Custom Initial Password */}
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center justify-between">
+                      <span>Senha Inicial do Usuário (Opcional)</span>
+                      <span className="text-[10px] text-zinc-400 font-normal">Deixe em branco para gerar aleatório</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={customPassword}
+                      onChange={(e) => setCustomPassword(e.target.value)}
+                      placeholder="Ex: Cliente@2026 (mínimo 6 dígitos)"
+                      className="w-full px-3.5 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono"
+                    />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
@@ -632,7 +730,158 @@ export default function MasterEmpresasPage() {
         </div>
       )}
 
-      {/* MODAL 2: CONFIGURAÇÃO EVOLUTION API (MASTER ONLY) */}
+      {/* MODAL 2: EDITAR INFORMAÇÕES DA EMPRESA */}
+      {editingCompany && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="bg-zinc-950 px-6 py-4 text-white flex items-center justify-between border-b border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <Edit className="w-5 h-5 text-emerald-400" />
+                <h2 className="text-base font-bold">Editar Empresa • {editingCompany.name}</h2>
+              </div>
+              <button
+                onClick={() => setEditingCompany(null)}
+                className="text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                    Nome da Empresa *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs"
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                    Nome Fantasia
+                  </label>
+                  <input
+                    type="text"
+                    value={editTradeName}
+                    onChange={(e) => setEditTradeName(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                    Responsável *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editOwnerName}
+                    onChange={(e) => setEditOwnerName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                    E-mail de Acesso *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                    WhatsApp *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                    Plano Base
+                  </label>
+                  <select
+                    value={editPlan}
+                    onChange={(e) => setEditPlan(e.target.value as SaaSPlan)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold"
+                  >
+                    <option value="starter">Starter</option>
+                    <option value="pro">Pro</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                    Valor Mensal (R$) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-xs font-bold text-zinc-400">R$</span>
+                    <input
+                      type="number"
+                      required
+                      step="10"
+                      min="0"
+                      value={editMonthlyPrice}
+                      onChange={(e) => setEditMonthlyPrice(Number(e.target.value))}
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold font-mono"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as CompanyStatus)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold"
+                  >
+                    <option value="active">Ativa</option>
+                    <option value="suspended">Suspensa</option>
+                    <option value="pending">Pendente</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingCompany(null)}
+                  className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-bold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30 cursor-pointer"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: CONFIGURAÇÃO EVOLUTION API (MASTER ONLY) */}
       {selectedCompanyForEvo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
