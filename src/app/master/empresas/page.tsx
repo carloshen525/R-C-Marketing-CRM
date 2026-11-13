@@ -677,7 +677,7 @@ export default function MasterEmpresasPage() {
                 </label>
                 <input
                   type="text"
-                  value={instances[selectedCompanyForEvo.id]?.api_url || 'https://evolution.rcmarketing.com.br'}
+                  value={instances[selectedCompanyForEvo.id]?.api_url || 'https://prospeccao-evolution01.pesd8y.easypanel.host'}
                   onChange={(e) =>
                     updateTenantEvolutionConfig(selectedCompanyForEvo.id, { api_url: e.target.value })
                   }
@@ -691,7 +691,7 @@ export default function MasterEmpresasPage() {
                 </label>
                 <input
                   type="password"
-                  value={instances[selectedCompanyForEvo.id]?.api_key || 'evo_secret_token'}
+                  value={instances[selectedCompanyForEvo.id]?.api_key || 'X9mK2vQ7LpR8aNc4HsT1yWf6BgZe3JuD'}
                   onChange={(e) =>
                     updateTenantEvolutionConfig(selectedCompanyForEvo.id, { api_key: e.target.value })
                   }

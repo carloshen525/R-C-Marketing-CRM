@@ -96,7 +96,7 @@ export default function MasterWhatsAppInstancesPage() {
 
                 <div className="mt-4 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/60 font-mono text-[11px] space-y-1">
                   <div className="text-zinc-500 truncate">
-                    API: {inst?.api_url || 'https://evolution.rcmarketing.com.br'}
+                    API: {inst?.api_url || 'https://prospeccao-evolution01.pesd8y.easypanel.host'}
                   </div>
                   <div className="text-zinc-500 truncate">
                     Key: ••••••••••••••••
