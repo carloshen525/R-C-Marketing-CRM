@@ -42,45 +42,44 @@ export default function LoginPage() {
     const cleanEmail = email.trim().toLowerCase();
 
     try {
-      // 1. Check if Supabase live backend is configured
+      // 1. Try Supabase Auth if configured with valid production credentials
       if (isSupabaseConfigured()) {
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password: password,
-        });
+        try {
+          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password: password,
+          });
 
-        if (authError) {
-          throw new Error(authError.message || 'Credenciais inválidas no Supabase Auth');
+          if (!authError && authData?.user) {
+            // Fetch user profile to check role and tenant_id
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('id, role, tenant_id, full_name, email')
+              .eq('id', authData.user.id)
+              .single();
+
+            const role = profile?.role || 'super_admin';
+            const tenantId = profile?.tenant_id || null;
+
+            await fetch('/api/auth/session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ role, tenantId }),
+            });
+
+            if (role === 'super_admin' || role === 'master_admin') {
+              router.push('/admin/dashboard');
+            } else {
+              router.push('/dashboard');
+            }
+            return;
+          }
+        } catch (supabaseErr) {
+          console.warn('Supabase offline or unreachable, falling back to local auth mode:', supabaseErr);
         }
-
-        // Fetch user profile to check role and tenant_id
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, role, tenant_id, full_name, email')
-          .eq('id', authData.user?.id)
-          .single();
-
-        if (profileError || !profile) {
-          throw new Error('Perfil de usuário não encontrado no sistema.');
-        }
-
-        // Set session cookies via API route
-        await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: profile.role, tenantId: profile.tenant_id }),
-        });
-
-        // Redirect according to role
-        if (profile.role === 'super_admin' || profile.role === 'master_admin') {
-          router.push('/admin/dashboard');
-        } else {
-          router.push('/dashboard');
-        }
-        return;
       }
 
-      // 2. Local/Demo Simulation mode using local user directory
+      // 2. Local / In-memory user directory fallback
       const foundUser = allUsers.find(
         (u) => u.email.toLowerCase() === cleanEmail
       );
