@@ -79,17 +79,21 @@ export default function ClienteIntegracoesPage() {
 
             <div>
               <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                WhatsApp conectado
+                {clientIntegrationStatus.whatsapp.isConnected ? 'WhatsApp Conectado' : 'WhatsApp Desconectado'}
               </h3>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Comunicação ativa para atendimento e vendas.
+                {clientIntegrationStatus.whatsapp.isConnected
+                  ? 'Comunicação ativa para atendimento e vendas.'
+                  : 'Nenhum aparelho conectado no momento.'}
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Status da Sessão:</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">🟢 Online</span>
+                <span className={`font-bold ${clientIntegrationStatus.whatsapp.isConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500'}`}>
+                  {clientIntegrationStatus.whatsapp.isConnected ? '🟢 Online' : '🔴 Desconectado'}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Última sincronização:</span>
@@ -147,14 +151,18 @@ export default function ClienteIntegracoesPage() {
                 Meta Ads
               </h3>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Rastreamento automático de conversões CAPI ativo.
+                {clientIntegrationStatus.metaAds.isConnected
+                  ? 'Rastreamento automático de conversões CAPI ativo.'
+                  : 'Nenhum Pixel ou Token CAPI configurado.'}
               </p>
             </div>
 
             <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/60 space-y-2.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Rastreamento Meta:</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400">🟢 Ativo e Monitorado</span>
+                <span className={`font-bold ${clientIntegrationStatus.metaAds.isConnected ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-500'}`}>
+                  {clientIntegrationStatus.metaAds.isConnected ? '🟢 Ativo e Monitorado' : '🔴 Inativo / Não Configurado'}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Última conversão enviada:</span>

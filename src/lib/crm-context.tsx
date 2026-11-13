@@ -283,18 +283,18 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     return allUsers;
   }, [isSuperAdmin, currentUser.tenant_id, allUsers]);
 
-  // WhatsApp & Meta for active company
+  // WhatsApp & Meta for active company (Starts clean and disconnected unless explicit credentials exist)
   const whatsappInstance = tenantEvolutionConfigs[activeCompany.id] || {
     id: `inst_${activeCompany.id || 'default'}`,
     company_id: activeCompany.id,
     instance_name: activeCompany.subdomain,
     api_url: 'https://prospeccao-evolution01.pesd8y.easypanel.host',
-    api_key: 'X9mK2vQ7LpR8aNc4HsT1yWf6BgZe3JuD',
-    status: 'connected',
-    phone_number: activeCompany.phone,
+    api_key: '',
+    status: 'disconnected',
+    phone_number: '',
     profile_name: activeCompany.name,
-    last_sync_at: 'Hoje às 09:00',
-    is_active: true,
+    last_sync_at: 'Aguardando conexão',
+    is_active: false,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   };
@@ -302,12 +302,12 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const metaIntegration = tenantMetaConfigs[activeCompany.id] || {
     id: `meta_${activeCompany.id || 'default'}`,
     company_id: activeCompany.id,
-    pixel_id: '891049281729381',
-    access_token: 'EAAG9...live_capi_token',
-    page_id: '1098234871294',
+    pixel_id: '',
+    access_token: '',
+    page_id: '',
     graph_api_version: 'v20.0',
-    last_conversion_sent_at: 'Hoje às 10:32',
-    is_active: true,
+    last_conversion_sent_at: 'Nenhuma conversão enviada',
+    is_active: false,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   };
@@ -323,14 +323,17 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
           ? 'Aguardando QR Code'
           : 'Desconectado',
       phoneNumber: whatsappInstance.phone_number,
-      lastSyncAt: whatsappInstance.last_sync_at || 'Hoje às 09:00',
+      lastSyncAt: whatsappInstance.last_sync_at || 'Aguardando conexão',
       instanceName: whatsappInstance.instance_name,
     },
     metaAds: {
-      isConnected: metaIntegration.is_active,
-      statusText: metaIntegration.is_active ? 'Conectado' : 'Desconectado',
-      trackingActive: metaIntegration.is_active,
-      lastConversionSentAt: metaIntegration.last_conversion_sent_at || 'Hoje às 10:32',
+      isConnected: Boolean(metaIntegration.is_active && metaIntegration.pixel_id && metaIntegration.access_token),
+      statusText:
+        metaIntegration.is_active && metaIntegration.pixel_id && metaIntegration.access_token
+          ? 'Conectado'
+          : 'Desconectado',
+      trackingActive: Boolean(metaIntegration.is_active && metaIntegration.pixel_id && metaIntegration.access_token),
+      lastConversionSentAt: metaIntegration.last_conversion_sent_at || 'Nenhuma conversão enviada',
       leadsTrackedCount: leads.filter((l) => !l.is_organic).length,
       purchasesSentCount: leads.filter((l) => l.purchase_sent).length,
     },
