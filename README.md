@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# R&C Marketing CRM 🚀
 
-## Getting Started
+Sistema SaaS Multi-Tenant avançado para **Rastreamento de Meta Ads + WhatsApp + CRM Kanban + Conversions API (CAPI)**, projetado com dois ambientes completamente isolados:
 
-First, run the development server:
+1. **Painel Master (Administrador R&C Marketing)** — Controle exclusivo de clientes, subdomínios, tokens Meta Ads CAPI e instâncias dedicadas da Evolution API.
+2. **Painel do Cliente (Empresa Contratante)** — Ambiente simplificado acessado via subdomínio (ex: `terraesilva.rcmarketingcrm.com.br`) com CRM, WhatsApp, Leads, Vendas, Relatórios e Status Seguro de Integrações.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🎯 A Jornada de Conversão 100% Nativa (Sem n8n)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+$$\text{Meta Ads (CTWA)} \longrightarrow \text{WhatsApp} \longrightarrow \text{Evolution API Webhook} \longrightarrow \text{CRM} \longrightarrow \text{Venda Fechada} \longrightarrow \text{Purchase (CAPI)}$$
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Anúncio Click-to-WhatsApp (CTWA)**: O webhook nativo do CRM recebe o webhook da Evolution API e extrai:
+   - `ctwa_clid`, `source_id`, `ad_id`, telefone, nome e plataforma.
+2. **Enriquecimento via Meta Graph API**: Consulta automaticamente nome da campanha, conjunto e anúncio exatos que geraram a mensagem.
+3. **LeadSubmitted Automático**: Enviado à Meta via CAPI apenas na criação do lead (idempotente — bloqueado contra reenvios em conversas futuras).
+4. **Operação no CRM**: O operador atende o lead e o conduz pelo funil.
+5. **Venda Concluída**: Ao mover o card para a etapa de ganho, **abre obrigatoriamente o modal "Registrar Venda"** (Cliente, Telefone, Produto, Valor BRL, Data, Checkbox *"☑ Enviar conversão para Meta Ads"*).
+6. **Disparo do Purchase para a Meta**: Ao confirmar, a venda é salva, o faturamento registrado e o evento `Purchase` é despachado via Conversions API utilizando as credenciais configuradas no Painel Master.
+7. **Lead Orgânico**: Caso o lead não possua `ctwa_clid`, o CRM funciona normalmente com a mensagem *"Lead orgânico - sem rastreamento Meta"* e o envio de Purchase permanece desabilitado para proteger as métricas de ROAS.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🛡️ 1. Painel Master — Administrador R&C Marketing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Acesso restrito à equipe interna da R&C Marketing (`/master`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Funcionalidades:
+- **Dashboard Geral SaaS**: MRR total, empresas ativas vs suspensas, total de leads rastreados, vendas registradas, faturamento movimentado pelos clientes e feed ao vivo de eventos CAPI.
+- **Cadastro Completo de Empresas**:
+  - *Informações*: Nome da empresa, Nome fantasia, Responsável, E-mail, WhatsApp, Plano (Starter, Pro, Enterprise), Status (Ativa, Pendente, Suspensa).
+  - *Subdomínio Exclusivo*: Geração automática com suporte a edição manual e validação de disponibilidade (ex: `terraesilva.rcmarketingcrm.com.br`).
+  - *Primeiro Administrador*: Geração automática do primeiro usuário da empresa com senha temporária, instrução de troca no primeiro acesso e botão para copiar dados de acesso.
+- **Configuração Técnica da Evolution API (Centralizada)**:
+  - URL da API, API Key, Nome da instância (`terraesilva`, `guinchoharley`, etc.), status da conexão, leitura de QR Code, reinicialização e desconexão.
+- **Configuração Técnica Meta Ads (Centralizada)**:
+  - Token permanente Meta (System User), Pixel ID, Dataset ID, Page ID, Webhook Secret, Graph API Version (`v20.0`) e Test Event Code.
+- **Gestão de Contas**: Suspender, reativar, editar ou excluir empresas contratantes.
+- **Impersonation**: Acesso direto com 1 clique ao Painel do Cliente como qualquer empresa.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🏢 2. Painel do Cliente (Empresa Contratante)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Cada empresa possui um ambiente isolado acessado pelo seu subdomínio:
+- Exemplo: `https://terraesilva.rcmarketingcrm.com.br` ou `https://guinchoharley.rcmarketingcrm.com.br`
+
+### Menus do Cliente:
+- **Dashboard**: Métricas do dia e do mês, faturamento, ticket médio, taxa de conversão, gráficos diários e ranking de campanhas/anúncios que mais geraram faturamento.
+- **CRM Kanban**: Colunas padrão (*Novos Leads*, *Atendimento*, *Negociação*, *Pagamento*, *Venda Concluída*, *Perdidos*) com drag-and-drop, filtros e Drawer lateral com dados completos, chat do WhatsApp, histórico e auditoria.
+- **Conversas WhatsApp**: Caixa de entrada interativa em tempo real alimentada pela instância dedicada da empresa na Evolution API.
+- **Status das Integrações (Modo Cliente)**:
+  - Visualização simplificada e segura:
+    - **WhatsApp**: Conectado 🟢 Online • Última sincronização • Ações: *Reconectar*, *Atualizar QR Code*, *Solicitar suporte*.
+    - **Meta Ads**: Conectado 🟢 • Rastreamento ativo • Quantidade de leads rastreados • Compras enviadas • Última conversão enviada.
+  - **O CLIENTE NUNCA VISUALIZA**: Token da Meta, API Key da Evolution, URL da Evolution, Pixel ID, Dataset ID, Webhook Secret, chaves de acesso ou dados de outros clientes.
+- **Relatórios**: Performance de campanhas, criativos, atendentes e exportação em formato CSV.
+
+---
+
+## 🗄️ Banco de Dados & RLS (Supabase)
+
+Migrations SQL disponíveis em `supabase/migrations/`:
+1. `20260101000000_rc_marketing_crm_schema.sql` (Schema base Multi-Tenant + RLS)
+2. `20260102000000_rc_marketing_master_saas.sql` (Estrutura SaaS Master, subdomínios, planos e políticas de superadmin)
+
+---
+
+## 🚀 Como Iniciar
+
+1. Instalar dependências:
+   ```bash
+   npm install
+   ```
+
+2. Executar o projeto:
+   ```bash
+   npm run dev
+   ```
+   Acesse: [http://localhost:3000](http://localhost:3000)
+
+3. Validar a build de produção:
+   ```bash
+   npm run build
+   ```
