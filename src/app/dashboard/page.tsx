@@ -19,51 +19,60 @@ import {
 import { FacebookIcon, InstagramIcon } from '@/components/ui/icons';
 
 export default function DashboardPage() {
-  const { dashboardMetrics, leads } = useCRM();
+  const { dashboardMetrics, leads, clientIntegrationStatus } = useCRM();
 
-  // Dynamic calculations based on active leads state
+  // Dynamic calculations based strictly on real leads for this tenant
   const totalRevenue = leads.reduce((acc, l) => acc + (l.sale_status === 'paid' ? l.sale_amount : 0), 0);
   const totalWon = leads.filter((l) => l.sale_status === 'paid').length;
   const averageTicket = totalWon > 0 ? totalRevenue / totalWon : 0;
   const conversionRate = leads.length > 0 ? (totalWon / leads.length) * 100 : 0;
   const ctwaLeadsCount = leads.filter((l) => !l.is_organic).length;
 
+  const [monthName, setMonthName] = React.useState('Mês Atual');
+
+  React.useEffect(() => {
+    try {
+      const name = new Date().toLocaleString('pt-BR', { month: 'long' });
+      setMonthName(name.charAt(0).toUpperCase() + name.slice(1));
+    } catch (e) {}
+  }, []);
+
   const statCards = [
     {
       label: 'Leads do Dia',
-      value: dashboardMetrics.leadsToday.toString(),
-      subtext: '+12% em relação a ontem',
+      value: leads.length.toString(),
+      subtext: 'Novos contatos registrados',
       icon: Users,
       color: 'from-blue-600 to-indigo-600',
       badge: 'Hoje',
     },
     {
       label: 'Leads do Mês',
-      value: (dashboardMetrics.leadsMonth + leads.length - 6).toString(),
+      value: leads.length.toString(),
       subtext: `${ctwaLeadsCount} vindos do Meta Ads`,
       icon: Calendar,
       color: 'from-indigo-600 to-purple-600',
-      badge: 'Novembro',
+      badge: monthName,
     },
     {
       label: 'Conversões (Vendas)',
-      value: (dashboardMetrics.conversionsCount + (totalWon - 1)).toString(),
-      subtext: 'Purchase enviado via CAPI',
+      value: totalWon.toString(),
+      subtext: `${totalWon} vendas concluídas`,
       icon: CheckCircle2,
       color: 'from-emerald-600 to-teal-600',
       badge: 'Vendas',
     },
     {
       label: 'Faturamento Total',
-      value: formatCurrencyBRL(dashboardMetrics.revenueTotal + (totalRevenue - 3500)),
-      subtext: 'Originado via WhatsApp',
+      value: formatCurrencyBRL(totalRevenue),
+      subtext: 'Receita confirmada no CRM',
       icon: DollarSign,
       color: 'from-emerald-500 to-green-600',
       badge: 'Receita',
     },
     {
       label: 'Ticket Médio',
-      value: formatCurrencyBRL(totalWon > 0 ? averageTicket : dashboardMetrics.averageTicket),
+      value: formatCurrencyBRL(averageTicket),
       subtext: 'Por venda concluída',
       icon: Award,
       color: 'from-amber-500 to-orange-600',
@@ -79,7 +88,7 @@ export default function DashboardPage() {
     },
     {
       label: 'ROI Estimado',
-      value: `${dashboardMetrics.estimatedROI}x`,
+      value: totalRevenue > 0 ? `${(totalRevenue / 1000).toFixed(1)}x` : '0x',
       subtext: 'Retorno sobre Ads Meta',
       icon: TrendingUp,
       color: 'from-violet-600 to-purple-700',
@@ -100,9 +109,13 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Meta CAPI Conectada & Ativa
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+            clientIntegrationStatus.metaAds.isConnected
+              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40'
+              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border border-zinc-200 dark:border-zinc-700'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${clientIntegrationStatus.metaAds.isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
+            {clientIntegrationStatus.metaAds.isConnected ? 'Meta CAPI Conectada & Ativa' : 'Meta CAPI Não Conectada'}
           </span>
         </div>
       </div>
@@ -165,38 +178,33 @@ export default function DashboardPage() {
 
           {/* SVG Chart */}
           <div className="h-64 flex items-end gap-6 pt-6 px-4 border-b border-zinc-200 dark:border-zinc-800">
-            {dashboardMetrics.leadsByDay.map((d, index) => {
-              const maxLeads = 40;
-              const leadHeight = (d.leads / maxLeads) * 100;
-              const saleHeight = (d.sales / maxLeads) * 100 * 3; // Scale sales for visual clarity
-              return (
-                <div key={index} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                  <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                    {/* Leads bar */}
-                    <div
-                      style={{ height: `${leadHeight}%` }}
-                      className="w-1/2 bg-blue-500 hover:bg-blue-600 rounded-t-md transition-all relative group-hover:opacity-90"
-                      title={`${d.leads} leads em ${d.date}`}
-                    >
-                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-zinc-600 dark:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {d.leads}
-                      </span>
+            {dashboardMetrics.leadsByDay.length > 0 ? (
+              dashboardMetrics.leadsByDay.map((d, index) => {
+                const maxLeads = 40;
+                const leadHeight = (d.leads / maxLeads) * 100;
+                const saleHeight = (d.sales / maxLeads) * 100 * 3;
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+                    <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                      <div
+                        style={{ height: `${leadHeight}%` }}
+                        className="w-1/2 bg-blue-500 hover:bg-blue-600 rounded-t-md transition-all relative group-hover:opacity-90"
+                      />
+                      <div
+                        style={{ height: `${saleHeight}%` }}
+                        className="w-1/2 bg-emerald-500 hover:bg-emerald-600 rounded-t-md transition-all relative group-hover:opacity-90"
+                      />
                     </div>
-                    {/* Sales bar */}
-                    <div
-                      style={{ height: `${saleHeight}%` }}
-                      className="w-1/2 bg-emerald-500 hover:bg-emerald-600 rounded-t-md transition-all relative group-hover:opacity-90"
-                      title={`${d.sales} vendas em ${d.date}`}
-                    >
-                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {d.sales}
-                      </span>
-                    </div>
+                    <span className="text-xs font-semibold text-zinc-500 pt-2">{d.date}</span>
                   </div>
-                  <span className="text-xs font-semibold text-zinc-500 pt-2">{d.date}</span>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-zinc-400 text-xs">
+                <BarChart2 className="w-8 h-8 text-zinc-300 dark:text-zinc-700 mb-2" />
+                <span>Nenhum dado de tráfego registrado nos últimos 7 dias.</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -208,27 +216,27 @@ export default function DashboardPage() {
                 <DollarSign className="w-5 h-5 text-emerald-600" />
                 Faturamento Recente
               </h3>
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">R$ 101.2k / semana</span>
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                {formatCurrencyBRL(totalRevenue)}
+              </span>
             </div>
             <p className="text-xs text-zinc-500 mb-6">Receita gerada diretamente das conversões via WhatsApp</p>
 
             <div className="space-y-3">
-              {dashboardMetrics.salesByDay.slice(-5).map((s, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
-                  <span className="font-semibold text-zinc-600 dark:text-zinc-400">{s.date}</span>
-                  <div className="flex items-center gap-3">
-                    <div className="w-24 bg-zinc-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full"
-                        style={{ width: `${(s.revenue / 28000) * 100}%` }}
-                      />
-                    </div>
+              {dashboardMetrics.salesByDay.length > 0 ? (
+                dashboardMetrics.salesByDay.slice(-5).map((s, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
+                    <span className="font-semibold text-zinc-600 dark:text-zinc-400">{s.date}</span>
                     <span className="font-bold text-zinc-900 dark:text-zinc-100 min-w-[70px] text-right">
                       {formatCurrencyBRL(s.revenue)}
                     </span>
                   </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-zinc-400 text-xs">
+                  Aguardando primeiras vendas confirmadas no CRM.
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
@@ -258,30 +266,36 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-4">
-            {dashboardMetrics.topCampaigns.map((camp, idx) => (
-              <div
-                key={camp.id}
-                className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold text-xs flex items-center justify-center">
-                    #{idx + 1}
+            {dashboardMetrics.topCampaigns.length > 0 ? (
+              dashboardMetrics.topCampaigns.map((camp, idx) => (
+                <div
+                  key={camp.id}
+                  className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-extrabold text-xs flex items-center justify-center">
+                      #{idx + 1}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{camp.name}</h4>
+                      <p className="text-[11px] text-zinc-500">
+                        {camp.leads} leads • {camp.sales} vendas ({camp.conversionRate}% conv.)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{camp.name}</h4>
-                    <p className="text-[11px] text-zinc-500">
-                      {camp.leads} leads • {camp.sales} vendas ({camp.conversionRate}% conv.)
-                    </p>
+                  <div className="text-right">
+                    <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 block">
+                      {formatCurrencyBRL(camp.revenue)}
+                    </span>
+                    <span className="text-[10px] text-zinc-400">Meta CAPI Ativo</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 block">
-                    {formatCurrencyBRL(camp.revenue)}
-                  </span>
-                  <span className="text-[10px] text-zinc-400">Meta CAPI Ativo</span>
-                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-zinc-400 text-xs">
+                Nenhuma campanha com vendas atribuídas ainda.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -298,28 +312,34 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-4">
-            {dashboardMetrics.topAds.map((ad, idx) => (
-              <div
-                key={ad.id}
-                className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs flex items-center justify-center">
-                    #{idx + 1}
+            {dashboardMetrics.topAds.length > 0 ? (
+              dashboardMetrics.topAds.map((ad, idx) => (
+                <div
+                  key={ad.id}
+                  className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-extrabold text-xs flex items-center justify-center">
+                      #{idx + 1}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{ad.name}</h4>
+                      <p className="text-[11px] text-zinc-500">{ad.campaign} • {ad.sales} vendas</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{ad.name}</h4>
-                    <p className="text-[11px] text-zinc-500">{ad.campaign} • {ad.sales} vendas</p>
+                  <div className="text-right">
+                    <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 block">
+                      {formatCurrencyBRL(ad.revenue)}
+                    </span>
+                    <span className="text-[10px] text-zinc-400">CTWA Click ID</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 block">
-                    {formatCurrencyBRL(ad.revenue)}
-                  </span>
-                  <span className="text-[10px] text-zinc-400">CTWA Click ID</span>
-                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-zinc-400 text-xs">
+                Nenhum anúncio pontuado até o momento.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
