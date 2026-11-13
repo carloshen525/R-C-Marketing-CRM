@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCRM } from '@/lib/crm-context';
 import {
   ShieldCheck,
@@ -13,9 +14,22 @@ import {
 } from 'lucide-react';
 
 export default function MasterMetaAdsPage() {
-  const { companies, getAllMetaIntegrations, updateTenantMetaConfig } = useCRM();
+  const router = useRouter();
+  const { companies, getAllMetaIntegrations, updateTenantMetaConfig, currentUser } = useCRM();
   const metaIntegrations = getAllMetaIntegrations();
   const [savedCompanyId, setSavedCompanyId] = useState<string | null>(null);
+
+  const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'master_admin';
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      router.replace('/acesso-negado');
+    }
+  }, [isSuperAdmin, router]);
+
+  if (!isSuperAdmin) {
+    return null;
+  }
 
   const handleSave = (companyId: string) => {
     setSavedCompanyId(companyId);

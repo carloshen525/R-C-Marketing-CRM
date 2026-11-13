@@ -8,8 +8,6 @@ import Link from 'next/link';
 
 export function Header() {
   const {
-    environmentMode,
-    setEnvironmentMode,
     currentUser,
     activeCompany,
     addNewLead,
@@ -17,6 +15,8 @@ export function Header() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+
+  const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'master_admin';
 
   const handleSimulateCtwa = async () => {
     setIsSimulating(true);
@@ -47,13 +47,13 @@ export function Header() {
   return (
     <>
       <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-10">
-        {/* Left: Search or Subdomain pill */}
+        {/* Left: Subdomain or Master Admin Indicator */}
         <div className="flex items-center gap-3">
-          {environmentMode === 'master' ? (
+          {isSuperAdmin ? (
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" />
-                Painel Master (Uso Interno R&C)
+                Painel Master (Uso Interno R&C Marketing)
               </span>
             </div>
           ) : (
@@ -71,7 +71,7 @@ export function Header() {
             <input
               type="text"
               placeholder={
-                environmentMode === 'master'
+                isSuperAdmin
                   ? 'Buscar empresas, clientes, instâncias...'
                   : 'Buscar por lead, telefone, campanha...'
               }
@@ -82,11 +82,11 @@ export function Header() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3">
-          {environmentMode === 'master' ? (
+          {isSuperAdmin ? (
             <>
               <Link
                 href="/master/empresas"
-                className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition-all"
+                className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 Cadastrar Empresa
@@ -94,7 +94,7 @@ export function Header() {
             </>
           ) : (
             <>
-              {/* Quick CTWA Lead Simulator Button */}
+              {/* Client Quick CTWA Lead Simulator Button */}
               <button
                 onClick={handleSimulateCtwa}
                 disabled={isSimulating}
@@ -105,7 +105,7 @@ export function Header() {
                 {isSimulating ? 'Simulando...' : 'Simular Lead CTWA'}
               </button>
 
-              {/* New Lead Manual Button */}
+              {/* Client New Lead Manual Button */}
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all"
@@ -117,9 +117,13 @@ export function Header() {
           )}
 
           {/* Role badge */}
-          <div className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1 capitalize">
+          <div className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[11px] font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1">
             <Shield className="w-3 h-3 text-emerald-600" />
-            {currentUser.role === 'master_admin' ? 'Master Admin' : currentUser.role}
+            {isSuperAdmin
+              ? 'Super Admin'
+              : currentUser.role === 'client_admin'
+              ? 'Admin Cliente'
+              : 'Atendente'}
           </div>
         </div>
       </header>

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCRM } from '@/lib/crm-context';
 import { formatPhone } from '@/lib/utils';
 import {
@@ -17,9 +18,22 @@ import {
 } from 'lucide-react';
 
 export default function MasterWhatsAppInstancesPage() {
-  const { companies, getAllWhatsAppInstances, updateTenantEvolutionConfig } = useCRM();
+  const router = useRouter();
+  const { companies, getAllWhatsAppInstances, updateTenantEvolutionConfig, currentUser } = useCRM();
   const instances = getAllWhatsAppInstances();
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
+
+  const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'master_admin';
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      router.replace('/acesso-negado');
+    }
+  }, [isSuperAdmin, router]);
+
+  if (!isSuperAdmin) {
+    return null;
+  }
 
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">

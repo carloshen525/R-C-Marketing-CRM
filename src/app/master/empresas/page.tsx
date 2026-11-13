@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCRM } from '@/lib/crm-context';
 import { Company, SaaSPlan, CompanyStatus } from '@/lib/types';
 import {
@@ -29,6 +30,7 @@ import {
 } from 'lucide-react';
 
 export default function MasterEmpresasPage() {
+  const router = useRouter();
   const {
     companies,
     createCompany,
@@ -41,7 +43,20 @@ export default function MasterEmpresasPage() {
     updateTenantEvolutionConfig,
     getAllMetaIntegrations,
     updateTenantMetaConfig,
+    currentUser,
   } = useCRM();
+
+  const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'master_admin';
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      router.replace('/acesso-negado');
+    }
+  }, [isSuperAdmin, router]);
+
+  if (!isSuperAdmin) {
+    return null;
+  }
 
   const [search, setSearch] = useState('');
   const [filterPlan, setFilterPlan] = useState('all');

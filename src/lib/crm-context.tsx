@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   Company,
   Profile,
@@ -44,7 +44,7 @@ interface CRMContextType {
   setActiveCompanyId: (companyId: string) => void;
   masterMetrics: MasterSaaSMetrics;
 
-  // Master Admin CRUD Operations
+  // Master Admin CRUD Operations (Protected: super_admin only)
   createCompany: (companyData: {
     name: string;
     trade_name?: string;
@@ -59,7 +59,7 @@ interface CRMContextType {
   toggleCompanyStatus: (id: string) => void;
   deleteCompany: (id: string) => void;
   
-  // Master Technical Configuration (Evolution & Meta Ads per tenant)
+  // Master Technical Configuration (Evolution & Meta Ads per tenant - super_admin only)
   updateTenantEvolutionConfig: (companyId: string, partial: Partial<WhatsAppInstance>) => void;
   updateTenantMetaConfig: (companyId: string, partial: Partial<MetaIntegration>) => void;
   getAllWhatsAppInstances: () => Record<string, WhatsAppInstance>;
@@ -68,7 +68,7 @@ interface CRMContextType {
   // Client-Safe Integration Status (Zero leak of tokens/keys)
   clientIntegrationStatus: ClientIntegrationStatus;
 
-  // Standard CRM State
+  // Standard CRM State (Strictly filtered by tenant_id)
   currentUser: Profile;
   setCurrentUserRole: (role: UserRole) => void;
   users: Profile[];
@@ -106,39 +106,92 @@ interface CRMContextType {
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
 
 export function CRMProvider({ children }: { children: React.ReactNode }) {
-  // Environments: 'master' (Painel Master R&C) vs 'client' (Painel do Cliente)
-  const [environmentMode, setEnvironmentMode] = useState<EnvironmentMode>('client');
-
-  // Multi-Tenant state
-  const [companies, setCompanies] = useState<Company[]>(mockCompanies);
-  const [activeCompanyId, setActiveCompanyId] = useState<string>(mockCompanies[0].id);
-  const [users, setUsers] = useState<Profile[]>(mockProfiles);
-  const [masterMetrics, setMasterMetrics] = useState<MasterSaaSMetrics>(mockMasterSaaSMetrics);
-
-  // Technical configurations per tenant (Controlled exclusively in Master Panel)
+  // All system data in memory
+  const [allCompanies, setAllCompanies] = useState<Company[]>(mockCompanies);
+  const [allUsers, setAllUsers] = useState<Profile[]>(mockProfiles);
+  const [allLeads, setAllLeads] = useState<Lead[]>(initialLeads);
   const [tenantEvolutionConfigs, setTenantEvolutionConfigs] = useState<Record<string, WhatsAppInstance>>(mockWhatsAppInstances);
   const [tenantMetaConfigs, setTenantMetaConfigs] = useState<Record<string, MetaIntegration>>(mockMetaIntegrations);
-
-  // Active Company and User
-  const activeCompany = companies.find((c) => c.id === activeCompanyId) || companies[0];
-  const [currentUser, setCurrentUser] = useState<Profile>(
-    environmentMode === 'master' ? mockProfiles[0] : mockProfiles[1]
-  );
-
-  // CRM funnel state
-  const [stages, setStages] = useState<PipelineStage[]>(mockStages);
-  const [tags] = useState<Tag[]>(mockTags);
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [conversations, setConversations] = useState<Record<string, Message[]>>(mockConversations);
   const [metaLogs, setMetaLogs] = useState<MetaConversionLog[]>(mockMetaConversions);
+  const [masterMetrics, setMasterMetrics] = useState<MasterSaaSMetrics>(mockMasterSaaSMetrics);
+  const [stages, setStages] = useState<PipelineStage[]>(mockStages);
+  const [tags] = useState<Tag[]>(mockTags);
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics>(mockDashboardMetrics);
+
+  // Current active user: Defaults to Client Admin (Helena - Terra e Silva) to verify client experience out of the box!
+  const [currentUser, setCurrentUser] = useState<Profile>(mockProfiles[1]); // Helena (client_admin)
+
+  // Current selected company ID
+  const [activeCompanyId, setActiveCompanyIdState] = useState<string>(mockCompanies[0].id);
 
   // Modals & Drawers
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
   const [pendingWonLead, setPendingWonLead] = useState<Lead | null>(null);
 
-  // WhatsApp & Meta for currently active company
+  // Security helper: Is the current user super_admin?
+  const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'master_admin';
+
+  // Environment Mode: forced to 'client' for non-superadmins!
+  const environmentMode: EnvironmentMode = isSuperAdmin ? 'master' : 'client';
+  const setEnvironmentMode = (mode: EnvironmentMode) => {
+    if (mode === 'master') {
+      if (!isSuperAdmin) {
+        alert('Acesso negado: Painel Master restrito a super_admin');
+        return;
+      }
+    }
+  };
+
+  // Rule: If user is client, active company is strictly locked to their tenant_id!
+  const resolvedCompanyId = useMemo(() => {
+    if (!isSuperAdmin && currentUser.tenant_id) {
+      return currentUser.tenant_id;
+    }
+    return activeCompanyId;
+  }, [isSuperAdmin, currentUser.tenant_id, activeCompanyId]);
+
+  const activeCompany = useMemo(() => {
+    return allCompanies.find((c) => c.id === resolvedCompanyId) || allCompanies[0];
+  }, [allCompanies, resolvedCompanyId]);
+
+  const setActiveCompanyId = (companyId: string) => {
+    if (!isSuperAdmin) {
+      console.warn('[Security] Client user cannot switch companies.');
+      return;
+    }
+    setActiveCompanyIdState(companyId);
+  };
+
+  // STRICT TENANT ISOLATION:
+  // Clients only see their own company. Super admin sees all.
+  const companies = useMemo(() => {
+    if (!isSuperAdmin) {
+      return [activeCompany];
+    }
+    return allCompanies;
+  }, [isSuperAdmin, activeCompany, allCompanies]);
+
+  // STRICT TENANT ISOLATION:
+  // Clients only see leads from their tenant. Super admin sees leads.
+  const leads = useMemo(() => {
+    if (!isSuperAdmin && currentUser.tenant_id) {
+      return allLeads.filter((l) => l.company_id === currentUser.tenant_id);
+    }
+    return allLeads;
+  }, [isSuperAdmin, currentUser.tenant_id, allLeads]);
+
+  // STRICT TENANT ISOLATION:
+  // Clients only see coworkers from their own tenant.
+  const users = useMemo(() => {
+    if (!isSuperAdmin && currentUser.tenant_id) {
+      return allUsers.filter((u) => u.company_id === currentUser.tenant_id);
+    }
+    return allUsers;
+  }, [isSuperAdmin, currentUser.tenant_id, allUsers]);
+
+  // WhatsApp & Meta for active company
   const whatsappInstance = tenantEvolutionConfigs[activeCompany.id] || {
     id: `inst_${activeCompany.id}`,
     company_id: activeCompany.id,
@@ -167,25 +220,6 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     updated_at: new Date().toISOString(),
   };
 
-  // Switch role or environment
-  useEffect(() => {
-    if (environmentMode === 'master') {
-      const masterUser = users.find((u) => u.role === 'master_admin') || users[0];
-      setCurrentUser(masterUser);
-    } else {
-      const clientUser = users.find((u) => u.company_id === activeCompany.id && u.role === 'admin') || users[1];
-      setCurrentUser(clientUser);
-    }
-  }, [environmentMode, activeCompanyId]);
-
-  // Keep selected lead refreshed
-  useEffect(() => {
-    if (selectedLead) {
-      const refreshed = leads.find((l) => l.id === selectedLead.id);
-      if (refreshed) setSelectedLead(refreshed);
-    }
-  }, [leads]);
-
   // Client-Safe Integration Status
   const clientIntegrationStatus: ClientIntegrationStatus = {
     whatsapp: {
@@ -210,29 +244,21 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     },
   };
 
+  // Role Switcher (Simulates login sessions)
   const setCurrentUserRole = (role: UserRole) => {
-    if (role === 'master_admin') {
-      setEnvironmentMode('master');
-      return;
-    }
-    const found = users.find((u) => u.role === role && u.company_id === activeCompany.id);
-    if (found) {
-      setCurrentUser(found);
+    if (role === 'super_admin' || role === 'master_admin') {
+      const superUser = allUsers.find((u) => u.role === 'super_admin' || u.role === 'master_admin') || allUsers[0];
+      setCurrentUser(superUser);
+    } else if (role === 'client_admin') {
+      const clientAdmin = allUsers.find((u) => u.role === 'client_admin' && u.company_id === activeCompany.id) || allUsers[1];
+      setCurrentUser(clientAdmin);
     } else {
-      setCurrentUser((prev) => ({ ...prev, role }));
+      const agentUser = allUsers.find((u) => (u.role === 'user' || u.role === 'agent') && u.company_id === activeCompany.id) || allUsers[2];
+      setCurrentUser(agentUser);
     }
   };
 
-  // Helper to generate clean subdomain from name
-  const generateSubdomain = (name: string): string => {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '');
-  };
-
-  // Master: Create New Company
+  // Master: Create New Company (Blocked for clients)
   const createCompany = async (data: {
     name: string;
     trade_name?: string;
@@ -243,6 +269,17 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     status: CompanyStatus;
     custom_subdomain?: string;
   }) => {
+    if (!isSuperAdmin) {
+      throw new Error('Acesso Negado: Operação restrita a super_admin.');
+    }
+
+    const generateSubdomain = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+
     const subdomain = data.custom_subdomain
       ? generateSubdomain(data.custom_subdomain)
       : generateSubdomain(data.name);
@@ -253,10 +290,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
     const newCompany: Company = {
       id: companyId,
+      tenant_id: companyId,
       name: data.name,
+      nome_empresa: data.name,
       trade_name: data.trade_name || data.name,
       slug: subdomain,
       subdomain,
+      subdominio: subdomain,
       full_subdomain,
       owner_name: data.owner_name,
       email: data.email,
@@ -268,13 +308,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       updated_at: new Date().toISOString(),
     };
 
-    // Initial company administrator user
     const initialAdmin: Profile = {
       id: `user_${subdomain}_admin`,
+      tenant_id: companyId,
       company_id: companyId,
       full_name: data.owner_name,
       email: data.email,
-      role: 'admin',
+      role: 'client_admin',
       is_active: true,
       phone: data.phone,
       must_change_password: true,
@@ -283,10 +323,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       updated_at: new Date().toISOString(),
     };
 
-    // Initial isolated Evolution instance
     const newEvolutionInstance: WhatsAppInstance = {
       id: `inst_${subdomain}`,
       company_id: companyId,
+      tenant_id: companyId,
       instance_name: subdomain,
       api_url: 'https://evolution.rcmarketing.com.br',
       api_key: `evo_secret_${subdomain}_${Date.now()}`,
@@ -300,10 +340,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       updated_at: new Date().toISOString(),
     };
 
-    // Initial Meta Ads integration
     const newMetaIntegration: MetaIntegration = {
       id: `meta_${subdomain}`,
       company_id: companyId,
+      tenant_id: companyId,
       pixel_id: `pixel_${Math.floor(100000000000000 + Math.random() * 900000000000000)}`,
       dataset_id: `dataset_${subdomain}`,
       access_token: `EAAG9_PERMANENT_TOKEN_${subdomain.toUpperCase()}`,
@@ -313,8 +353,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       updated_at: new Date().toISOString(),
     };
 
-    setCompanies((prev) => [newCompany, ...prev]);
-    setUsers((prev) => [...prev, initialAdmin]);
+    setAllCompanies((prev) => [newCompany, ...prev]);
+    setAllUsers((prev) => [...prev, initialAdmin]);
     setTenantEvolutionConfigs((prev) => ({ ...prev, [companyId]: newEvolutionInstance }));
     setTenantMetaConfigs((prev) => ({ ...prev, [companyId]: newMetaIntegration }));
 
@@ -333,13 +373,15 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCompany = (id: string, partial: Partial<Company>) => {
-    setCompanies((prev) =>
+    if (!isSuperAdmin) throw new Error('Acesso Negado.');
+    setAllCompanies((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...partial, updated_at: new Date().toISOString() } : c))
     );
   };
 
   const toggleCompanyStatus = (id: string) => {
-    setCompanies((prev) =>
+    if (!isSuperAdmin) throw new Error('Acesso Negado.');
+    setAllCompanies((prev) =>
       prev.map((c) => {
         if (c.id === id) {
           const nextStatus: CompanyStatus = c.status === 'active' ? 'suspended' : 'active';
@@ -351,10 +393,12 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteCompany = (id: string) => {
-    setCompanies((prev) => prev.filter((c) => c.id !== id));
+    if (!isSuperAdmin) throw new Error('Acesso Negado.');
+    setAllCompanies((prev) => prev.filter((c) => c.id !== id));
   };
 
   const updateTenantEvolutionConfig = (companyId: string, partial: Partial<WhatsAppInstance>) => {
+    if (!isSuperAdmin) throw new Error('Acesso Negado.');
     setTenantEvolutionConfigs((prev) => ({
       ...prev,
       [companyId]: { ...prev[companyId], ...partial, updated_at: new Date().toISOString() },
@@ -362,14 +406,22 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTenantMetaConfig = (companyId: string, partial: Partial<MetaIntegration>) => {
+    if (!isSuperAdmin) throw new Error('Acesso Negado.');
     setTenantMetaConfigs((prev) => ({
       ...prev,
       [companyId]: { ...prev[companyId], ...partial, updated_at: new Date().toISOString() },
     }));
   };
 
-  const getAllWhatsAppInstances = () => tenantEvolutionConfigs;
-  const getAllMetaIntegrations = () => tenantMetaConfigs;
+  const getAllWhatsAppInstances = () => {
+    if (!isSuperAdmin) return {};
+    return tenantEvolutionConfigs;
+  };
+
+  const getAllMetaIntegrations = () => {
+    if (!isSuperAdmin) return {};
+    return tenantMetaConfigs;
+  };
 
   // Sale Modal handlers
   const openSaleModal = (lead: Lead) => {
@@ -384,7 +436,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   const moveLeadStage = (leadId: string, stageId: string) => {
     const targetStage = stages.find((s) => s.id === stageId);
-    const targetLead = leads.find((l) => l.id === leadId);
+    const targetLead = allLeads.find((l) => l.id === leadId);
 
     if (!targetStage || !targetLead) return;
 
@@ -393,7 +445,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setLeads((prev) =>
+    setAllLeads((prev) =>
       prev.map((l) =>
         l.id === leadId
           ? {
@@ -415,7 +467,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       sendToMeta: boolean;
     }
   ) => {
-    const targetLead = leads.find((l) => l.id === leadId);
+    const targetLead = allLeads.find((l) => l.id === leadId);
     const wonStage = stages.find((s) => s.is_won) || stages[4];
     if (!targetLead) return { success: false, error: 'Lead não encontrado' };
 
@@ -442,6 +494,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         const newLog: MetaConversionLog = {
           id: `conv_${Date.now()}`,
           company_id: activeCompany.id,
+          tenant_id: activeCompany.id,
           lead_id: targetLead.id,
           event_name: 'Purchase',
           event_time: Math.floor(Date.now() / 1000),
@@ -455,7 +508,6 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         };
         setMetaLogs((prev) => [newLog, ...prev]);
 
-        // Update Meta last conversion time
         updateTenantMetaConfig(activeCompany.id, {
           last_conversion_sent_at: 'Hoje às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         });
@@ -465,7 +517,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    setLeads((prev) =>
+    setAllLeads((prev) =>
       prev.map((l) => {
         if (l.id === leadId) {
           return {
@@ -503,7 +555,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   const retryConversion = async (leadId: string) => {
-    const targetLead = leads.find((l) => l.id === leadId);
+    const targetLead = allLeads.find((l) => l.id === leadId);
     if (!targetLead || targetLead.is_organic || !targetLead.ctwa_clid) return;
 
     const result = await MetaConversionsService.sendPurchase(
@@ -518,7 +570,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     );
 
     if (result.success) {
-      setLeads((prev) =>
+      setAllLeads((prev) =>
         prev.map((l) =>
           l.id === leadId
             ? {
@@ -536,6 +588,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       const newLog: MetaConversionLog = {
         id: `conv_${Date.now()}`,
         company_id: activeCompany.id,
+        tenant_id: activeCompany.id,
         lead_id: targetLead.id,
         event_name: 'Purchase',
         event_time: Math.floor(Date.now() / 1000),
@@ -549,7 +602,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       };
       setMetaLogs((prev) => [newLog, ...prev]);
     } else {
-      setLeads((prev) =>
+      setAllLeads((prev) =>
         prev.map((l) =>
           l.id === leadId
             ? {
@@ -567,6 +620,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     const newMsg: Message = {
       id: `msg_${Date.now()}`,
       company_id: activeCompany.id,
+      tenant_id: activeCompany.id,
       conversation_id: `conv_${leadId}`,
       lead_id: leadId,
       sender_type: 'agent',
@@ -583,7 +637,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       [leadId]: [...(prev[leadId] || []), newMsg],
     }));
 
-    setLeads((prev) =>
+    setAllLeads((prev) =>
       prev.map((l) =>
         l.id === leadId
           ? {
@@ -596,7 +650,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateLead = (leadId: string, partial: Partial<Lead>) => {
-    setLeads((prev) =>
+    setAllLeads((prev) =>
       prev.map((l) => (l.id === leadId ? { ...l, ...partial, updated_at: new Date().toISOString() } : l))
     );
   };
@@ -609,6 +663,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     const newLead: Lead = {
       id: newId,
       company_id: activeCompany.id,
+      tenant_id: activeCompany.id,
       stage_id: leadData.stage_id || firstStage.id,
       assigned_to: currentUser.id,
       assigned_agent: currentUser,
@@ -645,6 +700,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         const newLog: MetaConversionLog = {
           id: `conv_${Date.now()}`,
           company_id: activeCompany.id,
+          tenant_id: activeCompany.id,
           lead_id: newLead.id,
           event_name: 'LeadSubmitted',
           event_time: Math.floor(Date.now() / 1000),
@@ -660,7 +716,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    setLeads((prev) => [newLead, ...prev]);
+    setAllLeads((prev) => [newLead, ...prev]);
 
     setConversations((prev) => ({
       ...prev,
@@ -668,6 +724,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         {
           id: `msg_init_${Date.now()}`,
           company_id: activeCompany.id,
+          tenant_id: activeCompany.id,
           conversation_id: `conv_${newId}`,
           lead_id: newId,
           sender_type: 'lead',
@@ -693,6 +750,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     const newStage: PipelineStage = {
       id: `stage_${Date.now()}`,
       company_id: activeCompany.id,
+      tenant_id: activeCompany.id,
       pipeline_id: 'pipe_01',
       name,
       color,

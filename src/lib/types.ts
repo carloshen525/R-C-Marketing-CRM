@@ -1,15 +1,26 @@
-export type UserRole = 'master_admin' | 'admin' | 'manager' | 'agent';
+export type UserRole =
+  | 'super_admin' // Master Admin R&C (tenant_id = null)
+  | 'client_admin' // Administrador do Cliente (tenant_id obrigatório)
+  | 'user' // Usuário / Atendente do Cliente (tenant_id obrigatório)
+  // Legacy aliases
+  | 'master_admin'
+  | 'admin'
+  | 'manager'
+  | 'agent';
 
 export type SaaSPlan = 'starter' | 'pro' | 'enterprise';
 
 export type CompanyStatus = 'active' | 'suspended' | 'pending';
 
 export interface Company {
-  id: string;
+  id: string; // tenant_id
+  tenant_id?: string;
   name: string;
+  nome_empresa?: string;
   trade_name?: string; // Nome fantasia
   slug: string;
   subdomain: string; // Ex: 'terraesilva'
+  subdominio?: string;
   full_subdomain: string; // Ex: 'terraesilva.rcmarketingcrm.com.br'
   document?: string; // CNPJ / CPF
   owner_name: string; // Responsável
@@ -25,7 +36,9 @@ export interface Company {
 
 export interface Profile {
   id: string;
-  company_id: string;
+  tenant_id: string | null; // NULL for super_admin, mandatory UUID for clients
+  company_id: string; // Alias for backward compatibility
+  name?: string;
   full_name: string;
   email: string;
   avatar_url?: string;
@@ -43,6 +56,7 @@ export type WhatsAppStatus = 'disconnected' | 'connecting' | 'qrcode' | 'connect
 export interface WhatsAppInstance {
   id: string;
   company_id: string;
+  tenant_id?: string;
   instance_name: string;
   api_url: string; // Master only
   api_key: string; // Master only
@@ -61,6 +75,7 @@ export interface WhatsAppInstance {
 export interface MetaIntegration {
   id: string;
   company_id: string;
+  tenant_id?: string;
   pixel_id: string; // Master only
   access_token: string; // Master only (Permanent Graph API token)
   page_id?: string; // Master only
@@ -99,6 +114,7 @@ export interface ClientIntegrationStatus {
 export interface Pipeline {
   id: string;
   company_id: string;
+  tenant_id?: string;
   name: string;
   is_default: boolean;
   stages?: PipelineStage[];
@@ -108,6 +124,7 @@ export interface Pipeline {
 export interface PipelineStage {
   id: string;
   company_id: string;
+  tenant_id?: string;
   pipeline_id: string;
   name: string;
   color: string;
@@ -120,6 +137,7 @@ export interface PipelineStage {
 export interface Tag {
   id: string;
   company_id: string;
+  tenant_id?: string;
   name: string;
   color: string;
   created_at?: string;
@@ -130,6 +148,7 @@ export type MetaSyncStatus = 'none' | 'pending' | 'sent' | 'failed';
 export interface Lead {
   id: string;
   company_id: string;
+  tenant_id?: string;
   stage_id: string;
   assigned_to?: string;
   assigned_agent?: Profile;
@@ -185,6 +204,7 @@ export interface Lead {
 export interface Conversation {
   id: string;
   company_id: string;
+  tenant_id?: string;
   lead_id: string;
   whatsapp_instance_id?: string;
   remote_jid: string;
@@ -197,6 +217,7 @@ export interface Conversation {
 export interface Message {
   id: string;
   company_id: string;
+  tenant_id?: string;
   conversation_id: string;
   lead_id: string;
   sender_type: 'lead' | 'agent' | 'system';
@@ -214,6 +235,7 @@ export interface Message {
 export interface MetaConversionLog {
   id: string;
   company_id: string;
+  tenant_id?: string;
   lead_id: string;
   event_name: 'LeadSubmitted' | 'Purchase';
   event_time: number;
@@ -230,6 +252,7 @@ export interface MetaConversionLog {
 export interface LeadNote {
   id: string;
   company_id: string;
+  tenant_id?: string;
   lead_id: string;
   author_id?: string;
   author_name?: string;
@@ -240,6 +263,7 @@ export interface LeadNote {
 export interface LeadTask {
   id: string;
   company_id: string;
+  tenant_id?: string;
   lead_id: string;
   assigned_to?: string;
   title: string;

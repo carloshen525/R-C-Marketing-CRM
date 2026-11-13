@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCRM } from '@/lib/crm-context';
 import { formatCurrencyBRL } from '@/lib/utils';
 import {
@@ -22,7 +23,20 @@ import {
 } from 'lucide-react';
 
 export default function MasterDashboardPage() {
-  const { masterMetrics, companies, metaLogs } = useCRM();
+  const router = useRouter();
+  const { masterMetrics, companies, metaLogs, currentUser } = useCRM();
+
+  const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'master_admin';
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      router.replace('/acesso-negado');
+    }
+  }, [isSuperAdmin, router]);
+
+  if (!isSuperAdmin) {
+    return null;
+  }
 
   const kpis = [
     {

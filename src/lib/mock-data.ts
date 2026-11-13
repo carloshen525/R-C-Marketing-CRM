@@ -79,27 +79,29 @@ export const mockCompanies: Company[] = [
 export const mockCompany: Company = mockCompanies[0]; // Default to Terra e Silva for client portal view
 
 export const mockProfiles: Profile[] = [
-  // Master Admin (R&C Marketing internal staff)
+  // Master Admin (R&C Marketing internal staff - tenant_id = null)
   {
     id: 'user_master_01',
+    tenant_id: null,
     company_id: 'comp_rc_01',
     full_name: 'Rodrigo Costa (R&C Master)',
     email: 'admin.master@rcmarketing.com.br',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    role: 'master_admin',
+    role: 'super_admin',
     is_active: true,
     phone: '+55 11 99999-9999',
     created_at: '2026-01-01T10:00:00Z',
     updated_at: '2026-01-01T10:00:00Z',
   },
-  // Terra e Silva Admin & Team
+  // Terra e Silva Admin & Team (tenant_id = comp_terra)
   {
     id: 'user_terra_admin',
+    tenant_id: 'comp_terra',
     company_id: 'comp_terra',
     full_name: 'Helena Terra Silva',
     email: 'helena@terraesilva.com.br',
     avatar_url: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80',
-    role: 'admin',
+    role: 'client_admin',
     is_active: true,
     phone: '+55 11 98877-1122',
     must_change_password: false,
@@ -108,24 +110,26 @@ export const mockProfiles: Profile[] = [
   },
   {
     id: 'user_terra_agent',
+    tenant_id: 'comp_terra',
     company_id: 'comp_terra',
     full_name: 'Renata Flores',
     email: 'renata@terraesilva.com.br',
     avatar_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
-    role: 'agent',
+    role: 'user',
     is_active: true,
     phone: '+55 11 98877-1123',
     created_at: '2026-02-01T10:00:00Z',
     updated_at: '2026-02-01T10:00:00Z',
   },
-  // Guincho Harley Admin & Team
+  // Guincho Harley Admin (tenant_id = comp_guincho)
   {
     id: 'user_harley_admin',
+    tenant_id: 'comp_guincho',
     company_id: 'comp_guincho',
     full_name: 'Harley de Souza',
     email: 'harley@guinchoharley.com.br',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    role: 'admin',
+    role: 'client_admin',
     is_active: true,
     phone: '+55 11 97766-3344',
     must_change_password: false,
