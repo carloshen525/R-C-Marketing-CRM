@@ -16,21 +16,52 @@ import {
 } from 'lucide-react';
 
 export default function ClienteIntegracoesPage() {
-  const { activeCompany, clientIntegrationStatus, updateWhatsAppStatus } = useCRM();
+  const { activeCompany, clientIntegrationStatus, updateWhatsAppStatus, whatsappInstance } = useCRM();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [isLoadingQr, setIsLoadingQr] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
   const [supportRequested, setSupportRequested] = useState(false);
 
-  const handleReconnect = () => {
+  const handleReconnect = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      updateWhatsAppStatus('connected');
-      setIsRefreshing(false);
-    }, 1200);
+    await handleOpenQr();
+    setIsRefreshing(false);
   };
 
-  const handleOpenQr = () => {
+  const handleOpenQr = async () => {
     setShowQrModal(true);
+    setIsLoadingQr(true);
+    setQrError(null);
+
+    try {
+      const res = await fetch('/api/whatsapp/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instanceName: whatsappInstance.instance_name || 'Carlos1',
+          apiUrl: whatsappInstance.api_url,
+          apiKey: whatsappInstance.api_key,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.connected) {
+        updateWhatsAppStatus('connected');
+        setShowQrModal(false);
+      } else if (data.qrcode) {
+        setQrCodeData(data.qrcode);
+        updateWhatsAppStatus('qrcode');
+      } else if (data.error) {
+        setQrError(data.error);
+      }
+    } catch (err: any) {
+      setQrError(err.message || 'Falha ao gerar QR Code na Evolution API');
+    } finally {
+      setIsLoadingQr(false);
+    }
   };
 
   const handleRequestSupport = () => {
@@ -207,12 +238,33 @@ export default function ClienteIntegracoesPage() {
               Abra o WhatsApp → Aparelhos Conectados → Conectar um Aparelho.
             </p>
 
-            <div className="p-4 bg-white rounded-2xl border-2 border-dashed border-emerald-500 inline-block shadow-md">
-              <img
-                src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=EvolutionAPI_Instance_Client_Pairing_Token"
-                alt="QR Code WhatsApp"
-                className="w-48 h-48 mx-auto"
-              />
+            {/* QR Code Container */}
+            <div className="p-4 bg-white rounded-2xl border-2 border-dashed border-emerald-500 inline-block shadow-md min-h-[220px] flex items-center justify-center">
+              {isLoadingQr ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-zinc-500 text-xs">
+                  <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
+                  <span>Gerando QR Code na Evolution API...</span>
+                </div>
+              ) : qrError ? (
+                <div className="p-3 text-red-500 text-xs flex flex-col items-center gap-2">
+                  <AlertCircle className="w-6 h-6" />
+                  <span>{qrError}</span>
+                  <button
+                    onClick={handleOpenQr}
+                    className="mt-1 px-3 py-1 rounded bg-zinc-100 text-zinc-800 text-[11px] font-bold"
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : qrCodeData ? (
+                <img
+                  src={qrCodeData.startsWith('data:') ? qrCodeData : `data:image/png;base64,${qrCodeData}`}
+                  alt="QR Code WhatsApp"
+                  className="w-48 h-48 mx-auto object-contain"
+                />
+              ) : (
+                <div className="text-xs text-zinc-400">Aguardando QR Code...</div>
+              )}
             </div>
 
             <div className="pt-2 flex flex-col gap-2">
@@ -221,13 +273,13 @@ export default function ClienteIntegracoesPage() {
                   updateWhatsAppStatus('connected');
                   setShowQrModal(false);
                 }}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer"
               >
                 Confirmar Leitura do QR
               </button>
               <button
                 onClick={() => setShowQrModal(false)}
-                className="w-full py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500"
+                className="w-full py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-500 cursor-pointer"
               >
                 Fechar
               </button>
