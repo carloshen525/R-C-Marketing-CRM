@@ -208,14 +208,32 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   // Security helper: Is the current user super_admin?
   const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'master_admin';
 
-  // Environment Mode: forced to 'client' for non-superadmins!
-  const environmentMode: EnvironmentMode = isSuperAdmin ? 'master' : 'client';
-  const setEnvironmentMode = (mode: EnvironmentMode) => {
-    if (mode === 'master') {
-      if (!isSuperAdmin) {
-        alert('Acesso negado: Painel Master restrito a super_admin');
-        return;
+  // Environment Mode: Can be toggled to 'client' by super_admin to inspect client accounts
+  const [environmentMode, setEnvironmentModeState] = useState<EnvironmentMode>('master');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedEnv = localStorage.getItem('rc_env_mode') as EnvironmentMode;
+      const savedCompany = localStorage.getItem('rc_active_company');
+      if (savedCompany) {
+        setActiveCompanyIdState(savedCompany);
       }
+      if (!isSuperAdmin) {
+        setEnvironmentModeState('client');
+      } else if (savedEnv) {
+        setEnvironmentModeState(savedEnv);
+      }
+    }
+  }, [isSuperAdmin]);
+
+  const setEnvironmentMode = (mode: EnvironmentMode) => {
+    if (mode === 'master' && !isSuperAdmin) {
+      alert('Acesso negado: Painel Master restrito a super_admin');
+      return;
+    }
+    setEnvironmentModeState(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rc_env_mode', mode);
     }
   };
 
@@ -254,6 +272,9 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setActiveCompanyIdState(companyId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rc_active_company', companyId);
+    }
   };
 
   // STRICT TENANT ISOLATION:

@@ -218,6 +218,7 @@ export default function MasterEmpresasPage() {
   const handleOpenClientPanel = (companyId: string) => {
     setActiveCompanyId(companyId);
     setEnvironmentMode('client');
+    router.push('/dashboard');
   };
 
   const filteredCompanies = companies.filter((c) => {

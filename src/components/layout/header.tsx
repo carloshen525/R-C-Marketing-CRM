@@ -1,16 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCRM } from '@/lib/crm-context';
-import { Search, Plus, Sparkles, Shield, Building2, Lock, Globe, ExternalLink } from 'lucide-react';
+import { Search, Plus, Sparkles, Shield, Building2, Lock, Globe, ExternalLink, ArrowLeft } from 'lucide-react';
 import { NewLeadModal } from '../crm/new-lead-modal';
 import Link from 'next/link';
 
 export function Header() {
+  const router = useRouter();
   const {
     currentUser,
     activeCompany,
     addNewLead,
+    environmentMode,
+    setEnvironmentMode,
   } = useCRM();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,7 +53,7 @@ export function Header() {
       <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-10">
         {/* Left: Subdomain or Master Admin Indicator */}
         <div className="flex items-center gap-3">
-          {isSuperAdmin ? (
+          {isSuperAdmin && environmentMode === 'master' ? (
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" />
@@ -60,7 +64,7 @@ export function Header() {
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold font-mono flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5" />
-                {activeCompany.full_subdomain}
+                {activeCompany.name} • {activeCompany.full_subdomain}
               </span>
             </div>
           )}
@@ -71,7 +75,7 @@ export function Header() {
             <input
               type="text"
               placeholder={
-                isSuperAdmin
+                isSuperAdmin && environmentMode === 'master'
                   ? 'Buscar empresas, clientes, instâncias...'
                   : 'Buscar por lead, telefone, campanha...'
               }
@@ -82,7 +86,20 @@ export function Header() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3">
-          {isSuperAdmin ? (
+          {isSuperAdmin && environmentMode === 'client' && (
+            <button
+              onClick={() => {
+                setEnvironmentMode('master');
+                router.push('/admin/empresas');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-600/20 transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Voltar ao Master
+            </button>
+          )}
+
+          {isSuperAdmin && environmentMode === 'master' ? (
             <>
               <Link
                 href="/admin/empresas"

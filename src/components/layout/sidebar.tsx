@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCRM } from '@/lib/crm-context';
 import {
   LayoutDashboard,
@@ -19,15 +19,20 @@ import {
   UserCheck,
   Users,
   Settings,
+  ArrowLeft,
+  Eye,
 } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     activeCompany,
     currentUser,
     users,
+    environmentMode,
+    setEnvironmentMode,
   } = useCRM();
 
   const [isDarkMode, setIsDarkMode] = React.useState(false);
@@ -53,6 +58,7 @@ export function Sidebar() {
   };
 
   const isSuperAdmin = currentUser.role === 'super_admin' || currentUser.role === 'master_admin';
+  const isMasterView = isSuperAdmin && environmentMode === 'master';
 
   // Navigation Links for Client Panel (Strictly isolated)
   const clientNavItems = [
@@ -63,8 +69,7 @@ export function Sidebar() {
     { label: 'Relatórios', href: '/relatorios', icon: BarChart3 },
   ];
 
-  // Navigation Links for Master Panel (ONLY visible if super_admin)
-  // Matching user requested menu: Dashboard, Empresas, Usuários, Instâncias WhatsApp, Integrações Meta, Configurações SaaS
+  // Navigation Links for Master Panel (ONLY visible if super_admin in master mode)
   const masterNavItems = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { label: 'Empresas', href: '/admin/empresas', icon: Building2 },
@@ -74,7 +79,7 @@ export function Sidebar() {
     { label: 'Configurações SaaS', href: '/admin/configuracoes', icon: Settings },
   ];
 
-  const currentNavItems = isSuperAdmin ? masterNavItems : clientNavItems;
+  const currentNavItems = isMasterView ? masterNavItems : clientNavItems;
 
   return (
     <aside className="w-64 bg-zinc-900 text-zinc-300 flex flex-col h-screen border-r border-zinc-800 shrink-0 select-none">
@@ -83,34 +88,62 @@ export function Sidebar() {
         <div className="flex items-center gap-3">
           <div
             className={`w-9 h-9 rounded-xl flex items-center justify-center text-white font-extrabold text-base shadow-md ${
-              isSuperAdmin
+              isMasterView
                 ? 'bg-gradient-to-tr from-purple-600 via-indigo-600 to-blue-600 shadow-purple-600/30'
                 : 'bg-gradient-to-tr from-emerald-500 via-teal-500 to-blue-500 shadow-emerald-500/20'
             }`}
           >
-            {isSuperAdmin ? 'M' : 'R'}
+            {isMasterView ? 'M' : 'R'}
           </div>
           <div>
             <h1 className="text-sm font-extrabold text-white tracking-tight flex items-center gap-1.5">
               R&C Marketing{' '}
               <span
                 className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${
-                  isSuperAdmin
+                  isMasterView
                     ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                     : 'bg-emerald-500/20 text-emerald-400'
                 }`}
               >
-                {isSuperAdmin ? 'MASTER' : 'CRM'}
+                {isMasterView ? 'MASTER' : 'CRM'}
               </span>
             </h1>
             <p className="text-[11px] text-zinc-400 truncate max-w-[150px]">
-              {isSuperAdmin ? 'Administrador Geral' : activeCompany.name}
+              {isMasterView ? 'Administrador Geral' : activeCompany.name}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Tenant Subdomain / Context - Rendered for Clients */}
+      {/* Visão do Cliente Banner for Super Admin */}
+      {isSuperAdmin && environmentMode === 'client' && (
+        <div className="mx-3 mt-3 p-3 rounded-2xl bg-purple-950/70 border border-purple-800/80 space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1">
+              <Eye className="w-3.5 h-3.5" />
+              Visão do Cliente
+            </span>
+            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200">
+              Ativo
+            </span>
+          </div>
+          <div className="font-bold text-white text-xs truncate">
+            {activeCompany.name}
+          </div>
+          <button
+            onClick={() => {
+              setEnvironmentMode('master');
+              router.push('/admin/empresas');
+            }}
+            className="w-full py-1.5 px-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/30 transition-all cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Voltar ao Painel Master
+          </button>
+        </div>
+      )}
+
+      {/* Tenant Subdomain / Context - Rendered for Regular Clients */}
       {!isSuperAdmin && (
         <div className="mx-3 mt-3 p-2.5 rounded-xl bg-zinc-800/70 border border-zinc-700/50 space-y-1">
           <div className="flex items-center justify-between">
@@ -131,7 +164,7 @@ export function Sidebar() {
       {/* Main Nav Items */}
       <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
         <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 px-3 py-1">
-          {isSuperAdmin ? 'Administração SaaS' : 'Menu Principal'}
+          {isMasterView ? 'Administração SaaS' : 'Menu Principal'}
         </div>
 
         {currentNavItems.map((item) => {
@@ -147,7 +180,7 @@ export function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 isActive
-                  ? isSuperAdmin
+                  ? isMasterView
                     ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
                     : 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                   : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
