@@ -73,11 +73,11 @@ export async function POST(req: NextRequest) {
         messageData?.extendedTextMessage?.text ||
         'Mensagem recebida pelo WhatsApp';
 
-      let campaignName = isOrganic ? undefined : 'Campanha Meta Ads • Projeto Saber+';
-      let adsetName = isOrganic ? undefined : 'Conjunto de Anúncios';
+      let campaignName = isOrganic ? undefined : '[Eng] [Jogo da Memória das Silabas] [10.11]';
+      let adsetName = isOrganic ? undefined : '[25-40] [Mulheres]';
       let adName = isOrganic
         ? undefined
-        : referral?.title || referral?.headline || 'Jogo da Memória das Sílabas';
+        : referral?.title || referral?.headline || '01 - Jogo da Memória das Sílabas';
 
       // Enrich with Meta Graph API if adId is available
       if (adId) {
