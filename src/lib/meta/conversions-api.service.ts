@@ -20,6 +20,43 @@ export interface CapiSendResult {
 export class MetaConversionsService {
   private static readonly GRAPH_API_VERSION = 'v20.0';
   private static readonly GRAPH_BASE_URL = 'https://graph.facebook.com';
+  private static pixelCache: Record<string, string> = {};
+
+  /**
+   * Auto-discovers the active Pixel ID from Meta Graph API using the permanent access token
+   */
+  static async autoDiscoverPixel(accessToken: string): Promise<string | null> {
+    if (!accessToken || accessToken.startsWith('demo_')) return null;
+    if (this.pixelCache[accessToken]) return this.pixelCache[accessToken];
+
+    try {
+      const res = await fetch(
+        `${this.GRAPH_BASE_URL}/${this.GRAPH_API_VERSION}/me/adaccounts?fields=id,name,adspixels{id,name}&access_token=${accessToken}`
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const accounts = data?.data || [];
+      for (const acc of accounts) {
+        const pixels: Array<{ id: string; name: string }> = acc?.adspixels?.data || [];
+        if (pixels.length > 0) {
+          const match =
+            pixels.find(
+              (p) =>
+                p.name.toLowerCase().includes('whatstracker') ||
+                p.name.toLowerCase().includes('whatsapp')
+            ) || pixels[0];
+          if (match?.id) {
+            this.pixelCache[accessToken] = match.id;
+            console.log(`[Meta CAPI] Auto-discovered Pixel: ${match.name} (${match.id})`);
+            return match.id;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Meta CAPI] Auto-discovery of Pixel failed:', e);
+    }
+    return null;
+  }
 
   /**
    * Sends the LeadSubmitted event to Meta Conversions API
@@ -147,8 +184,19 @@ export class MetaConversionsService {
     payload: Record<string, unknown> = {},
     eventId: string = ''
   ): Promise<CapiSendResult> {
+    const effectiveToken = accessToken || process.env.META_ACCESS_TOKEN;
+    let targetPixel = pixelId || process.env.META_PIXEL_ID;
+
+    // Auto-discover pixel if missing or placeholder and real token is present
+    if ((!targetPixel || targetPixel.startsWith('pixel_')) && effectiveToken && effectiveToken.startsWith('EAA')) {
+      const discovered = await this.autoDiscoverPixel(effectiveToken);
+      if (discovered) {
+        targetPixel = discovered;
+      }
+    }
+
     // If no real credentials are configured, return a simulated successful response with real payload
-    if (!pixelId || !accessToken || accessToken.startsWith('demo_') || pixelId.startsWith('demo_')) {
+    if (!targetPixel || !effectiveToken || effectiveToken.startsWith('demo_') || targetPixel.startsWith('demo_') || targetPixel.startsWith('pixel_')) {
       console.log('[Meta CAPI] Running in Demo/Simulated mode. Payload:', JSON.stringify(payload, null, 2));
       return {
         success: true,
@@ -167,7 +215,7 @@ export class MetaConversionsService {
     }
 
     try {
-      const url = `${this.GRAPH_BASE_URL}/${this.GRAPH_API_VERSION}/${pixelId}/events?access_token=${accessToken}`;
+      const url = `${this.GRAPH_BASE_URL}/${this.GRAPH_API_VERSION}/${targetPixel}/events?access_token=${effectiveToken}`;
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
