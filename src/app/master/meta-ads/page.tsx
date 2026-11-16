@@ -93,75 +93,23 @@ export default function MasterMetaAdsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+              <div className="space-y-2 text-xs">
                 <div>
                   <label className="block text-[11px] font-bold text-zinc-500 uppercase mb-1">
-                    Pixel ID
-                  </label>
-                  <input
-                    type="text"
-                    value={meta?.pixel_id || ''}
-                    onChange={(e) =>
-                      updateTenantMetaConfig(c.id, { pixel_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-zinc-500 uppercase mb-1">
-                    Dataset ID
-                  </label>
-                  <input
-                    type="text"
-                    value={meta?.dataset_id || ''}
-                    onChange={(e) =>
-                      updateTenantMetaConfig(c.id, { dataset_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-zinc-500 uppercase mb-1">
-                    Facebook Page ID
-                  </label>
-                  <input
-                    type="text"
-                    value={meta?.page_id || ''}
-                    onChange={(e) =>
-                      updateTenantMetaConfig(c.id, { page_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono text-xs"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-zinc-500 uppercase mb-1">
-                    Test Event Code
-                  </label>
-                  <input
-                    type="text"
-                    value={meta?.test_event_code || ''}
-                    onChange={(e) =>
-                      updateTenantMetaConfig(c.id, { test_event_code: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono text-xs"
-                  />
-                </div>
-
-                <div className="md:col-span-4">
-                  <label className="block text-[11px] font-bold text-zinc-500 uppercase mb-1">
-                    Token Permanente Meta (System User - Permissões ads_management + pixel)
+                    Token Permanente Meta (Conversions API / System User)
                   </label>
                   <input
                     type="password"
+                    placeholder="Cole aqui o Token Permanente da Meta (EAAG...)"
                     value={meta?.access_token || ''}
                     onChange={(e) =>
                       updateTenantMetaConfig(c.id, { access_token: e.target.value })
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono text-xs"
+                    className="w-full px-3 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 font-mono text-xs"
                   />
+                  <p className="text-[11px] text-zinc-400 mt-1">
+                    Token permanente de longa duração para envio automático de conversões e eventos da Meta (Leads e Vendas).
+                  </p>
                 </div>
               </div>
             </div>

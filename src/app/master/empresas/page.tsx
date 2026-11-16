@@ -1058,36 +1058,7 @@ export default function MasterEmpresasPage() {
             <div className="p-6 space-y-4">
               <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl text-blue-800 dark:text-blue-300 text-xs flex items-center gap-2">
                 <Lock className="w-4 h-4 shrink-0" />
-                <span>Os dados sensíveis (Token permanente, Pixel e Dataset ID) ficam gravados apenas no Painel Master.</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">
-                    Pixel ID
-                  </label>
-                  <input
-                    type="text"
-                    value={metaIntegrations[selectedCompanyForMeta.id]?.pixel_id || ''}
-                    onChange={(e) =>
-                      updateTenantMetaConfig(selectedCompanyForMeta.id, { pixel_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">
-                    Dataset ID
-                  </label>
-                  <input
-                    type="text"
-                    value={metaIntegrations[selectedCompanyForMeta.id]?.dataset_id || ''}
-                    onChange={(e) =>
-                      updateTenantMetaConfig(selectedCompanyForMeta.id, { dataset_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono"
-                  />
-                </div>
+                <span>O Token Permanente da Meta fica gravado com segurança apenas no Painel Master.</span>
               </div>
 
               <div>
@@ -1096,41 +1067,16 @@ export default function MasterEmpresasPage() {
                 </label>
                 <input
                   type="password"
+                  placeholder="Cole aqui o Token Permanente da Meta (EAAG...)"
                   value={metaIntegrations[selectedCompanyForMeta.id]?.access_token || ''}
                   onChange={(e) =>
                     updateTenantMetaConfig(selectedCompanyForMeta.id, { access_token: e.target.value })
                   }
-                  className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono"
+                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">
-                    Facebook Page ID
-                  </label>
-                  <input
-                    type="text"
-                    value={metaIntegrations[selectedCompanyForMeta.id]?.page_id || ''}
-                    onChange={(e) =>
-                      updateTenantMetaConfig(selectedCompanyForMeta.id, { page_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">
-                    Test Event Code
-                  </label>
-                  <input
-                    type="text"
-                    value={metaIntegrations[selectedCompanyForMeta.id]?.test_event_code || ''}
-                    onChange={(e) =>
-                      updateTenantMetaConfig(selectedCompanyForMeta.id, { test_event_code: e.target.value })
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono"
-                  />
-                </div>
+                <p className="text-[11px] text-zinc-400 mt-1.5">
+                  Token permanente de longa duração para envio automático de conversões e eventos da Meta (Leads e Vendas).
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
