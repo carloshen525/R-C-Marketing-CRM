@@ -714,44 +714,56 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     let metaResponseId: string | undefined = undefined;
 
     if (saleData.sendToMeta && !targetLead.is_organic && targetLead.ctwa_clid) {
-      const result = await MetaConversionsService.sendPurchase(
-        targetLead,
-        {
-          amount: saleData.amount,
-          currency: 'BRL',
-          productName: saleData.productName,
-          saleDate: saleData.saleDate,
-        },
-        metaIntegration
-      );
-
-      if (result.success) {
-        metaStatus = 'sent';
-        metaResponseId = result.responseId || result.fbtraceId;
-
-        const newLog: MetaConversionLog = {
-          id: `conv_${Date.now()}`,
-          company_id: activeCompany.id,
-          tenant_id: activeCompany.id,
-          lead_id: targetLead.id,
-          event_name: 'Purchase',
-          event_time: Math.floor(Date.now() / 1000),
-          event_id: result.eventId,
-          action_source: 'chat',
-          status: 'success',
-          response_fbtrace_id: result.fbtraceId,
-          payload: result.payload,
-          response_data: result.responseData,
-          created_at: new Date().toISOString(),
-        };
-        setMetaLogs((prev) => [newLog, ...prev]);
-
-        updateTenantMetaConfig(activeCompany.id, {
-          last_conversion_sent_at: 'Hoje às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      try {
+        const res = await fetch('/api/meta/conversion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lead: targetLead,
+            saleData: {
+              amount: saleData.amount,
+              currency: 'BRL',
+              productName: saleData.productName,
+              saleDate: saleData.saleDate,
+            },
+            metaConfig: metaIntegration,
+          }),
         });
-      } else {
+        const result = await res.json();
+
+        if (result.success) {
+          metaStatus = 'sent';
+          metaResponseId = result.responseId || result.fbtraceId;
+
+          const newLog: MetaConversionLog = {
+            id: `conv_${Date.now()}`,
+            company_id: activeCompany.id,
+            tenant_id: activeCompany.id,
+            lead_id: targetLead.id,
+            event_name: 'Purchase',
+            event_time: Math.floor(Date.now() / 1000),
+            event_id: result.eventId || `purch_${Date.now()}`,
+            action_source: 'chat',
+            status: 'success',
+            response_fbtrace_id: result.fbtraceId,
+            payload: result.payload,
+            response_data: result.responseData,
+            created_at: new Date().toISOString(),
+          };
+          setMetaLogs((prev) => [newLog, ...prev]);
+
+          updateTenantMetaConfig(activeCompany.id, {
+            last_conversion_sent_at:
+              'Hoje às ' +
+              new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          });
+        } else {
+          metaStatus = 'failed';
+          metaError = result.errorMessage || 'Falha ao despachar evento para Meta CAPI';
+        }
+      } catch (err) {
         metaStatus = 'failed';
-        metaError = result.errorMessage || 'Falha ao despachar evento para Meta CAPI';
+        metaError = err instanceof Error ? err.message : 'Falha na requisição para o servidor CAPI';
       }
     }
 

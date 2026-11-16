@@ -2,7 +2,7 @@
   {
     "id": "lead_wa_556699440703_1794865772",
     "company_id": "comp_pedagogicos",
-    "stage_id": "stage_1",
+    "stage_id": "stage_5",
     "name": "Karem Sabrina 💕",
     "phone": "556699440703",
     "is_organic": false,
@@ -13,14 +13,17 @@
     "lead_submitted_sent": true,
     "lead_submitted_at": "2026-11-16T21:57:16.000Z",
     "lead_submitted_response_id": "A5V-bJREB39O9wDVId0sJgs",
-    "sale_amount": 0,
+    "product_name": "Jogo da Memória das Sílabas",
+    "sale_amount": 5.0,
     "currency": "BRL",
-    "sale_status": "none",
-    "purchase_sent": false,
-    "purchase_meta_status": "none",
+    "sale_status": "paid",
+    "purchase_sent": true,
+    "purchase_sent_at": "2026-11-16T22:28:50.000Z",
+    "purchase_meta_status": "sent",
+    "purchase_response_id": "AOq8pj1DtU_63fOiG3bJaq4",
     "first_message_at": "2026-11-16T21:49:32.000Z",
-    "last_interaction_at": "2026-11-16T21:49:32.000Z",
+    "last_interaction_at": "2026-11-16T22:28:50.000Z",
     "created_at": "2026-11-16T21:49:32.000Z",
-    "updated_at": "2026-11-16T21:57:16.000Z"
+    "updated_at": "2026-11-16T22:28:50.000Z"
   }
 ]
