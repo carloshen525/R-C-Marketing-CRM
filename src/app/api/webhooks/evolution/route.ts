@@ -30,8 +30,18 @@ export async function POST(req: NextRequest) {
 
       // Check Click-to-WhatsApp referral
       // Evolution API forwards WhatsApp Baileys / Cloud referral object
-      const contextInfo = messageData?.message?.extendedTextMessage?.contextInfo;
-      const referral = body.data?.referral || contextInfo?.externalAdReply || contextInfo?.referral;
+      const contextInfo =
+        messageData?.extendedTextMessage?.contextInfo ||
+        messageData?.message?.extendedTextMessage?.contextInfo ||
+        body.data?.message?.extendedTextMessage?.contextInfo ||
+        body.data?.contextInfo;
+
+      const referral =
+        body.data?.referral ||
+        contextInfo?.externalAdReply ||
+        contextInfo?.referral ||
+        messageData?.referral ||
+        body.data?.message?.referral;
 
       const ctwaClid = referral?.ctwaClid || referral?.ctwa_clid || referral?.referralParam;
       const sourceId = referral?.sourceId || referral?.source_id || referral?.sourceUrl;
