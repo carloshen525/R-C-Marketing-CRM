@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Company,
   Profile,
@@ -105,6 +105,8 @@ interface CRMContextType {
   addNewLead: (leadData: Partial<Lead>) => Promise<Lead>;
   updateWhatsAppStatus: (status: WhatsAppInstance['status']) => void;
   addStage: (name: string, color: string) => void;
+  syncWhatsAppLeads: () => Promise<void>;
+  isSyncingLeads: boolean;
 }
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
@@ -292,8 +294,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     if (!isSuperAdmin && currentUser.tenant_id) {
       return allLeads.filter((l) => l.company_id === currentUser.tenant_id);
     }
+    if (environmentMode === 'client' && activeCompany.id) {
+      return allLeads.filter(
+        (l) => l.company_id === activeCompany.id || !l.company_id || l.company_id === 'comp_pedagogicos'
+      );
+    }
     return allLeads;
-  }, [isSuperAdmin, currentUser.tenant_id, allLeads]);
+  }, [isSuperAdmin, currentUser.tenant_id, allLeads, environmentMode, activeCompany.id]);
 
   // STRICT TENANT ISOLATION:
   // Clients only see coworkers from their own tenant.
@@ -380,6 +387,65 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       setCurrentUser(agentUser);
     }
   };
+
+  // Sync leads & messages from server storage & Evolution API
+  const [isSyncingLeads, setIsSyncingLeads] = useState(false);
+
+  const syncWhatsAppLeads = useCallback(
+    async (triggerEvolutionSync = true) => {
+      try {
+        setIsSyncingLeads(true);
+        const activeInst = tenantEvolutionConfigs[activeCompany.id]?.instance_name || 'Carlos1';
+        const companyId = activeCompany.id || 'comp_pedagogicos';
+        const url = `/api/leads?company_id=${companyId}&instance=${activeInst}${
+          triggerEvolutionSync ? '&sync=true' : ''
+        }`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.leads && Array.isArray(data.leads) && data.leads.length > 0) {
+          setAllLeads((prev) => {
+            const merged = [...prev];
+            for (const sLead of data.leads) {
+              const idx = merged.findIndex(
+                (l) => l.id === sLead.id || (sLead.phone && l.phone === sLead.phone)
+              );
+              const leadFormatted: Lead = {
+                ...sLead,
+                company_id: sLead.company_id || activeCompany.id || 'comp_pedagogicos',
+              };
+              if (idx >= 0) {
+                merged[idx] = { ...merged[idx], ...leadFormatted };
+              } else {
+                merged.unshift(leadFormatted);
+              }
+            }
+            return merged;
+          });
+        }
+        if (data.messages && typeof data.messages === 'object') {
+          setConversations((prev) => ({
+            ...prev,
+            ...data.messages,
+          }));
+        }
+      } catch (e) {
+        console.warn('[CRM] Sync leads failed:', e);
+      } finally {
+        setIsSyncingLeads(false);
+      }
+    },
+    [activeCompany.id, tenantEvolutionConfigs]
+  );
+
+  // Poll server for new leads every 5s and sync on mount
+  useEffect(() => {
+    syncWhatsAppLeads(true);
+    const interval = setInterval(() => {
+      syncWhatsAppLeads(false);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [syncWhatsAppLeads]);
 
   // Master: Create New Company (Blocked for clients)
   const createCompany = async (data: {
@@ -954,6 +1020,8 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         addNewLead,
         updateWhatsAppStatus,
         addStage,
+        syncWhatsAppLeads,
+        isSyncingLeads,
       }}
     >
       {children}

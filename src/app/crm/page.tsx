@@ -18,6 +18,7 @@ import {
   MoreVertical,
   ChevronRight,
   MoveRight,
+  RefreshCw,
 } from 'lucide-react';
 import { FacebookIcon, InstagramIcon } from '@/components/ui/icons';
 import { LeadDrawer } from '@/components/crm/lead-drawer';
@@ -31,6 +32,8 @@ export default function CRMKanbanPage() {
     moveLeadStage,
     setSelectedLead,
     addStage,
+    syncWhatsAppLeads,
+    isSyncingLeads,
   } = useCRM();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,6 +157,17 @@ export default function CRMKanbanPage() {
             <option value="meta">Meta Ads (CTWA)</option>
             <option value="organic">Orgânico</option>
           </select>
+
+          {/* Sync WhatsApp button */}
+          <button
+            onClick={() => syncWhatsAppLeads()}
+            disabled={isSyncingLeads}
+            title="Sincronizar mensagens e leads do WhatsApp"
+            className="px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-xs font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingLeads ? 'animate-spin' : ''}`} />
+            <span>{isSyncingLeads ? 'Sincronizando...' : 'Sincronizar'}</span>
+          </button>
 
           {/* Add New Stage button */}
           <button
