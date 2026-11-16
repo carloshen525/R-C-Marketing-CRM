@@ -348,12 +348,12 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       instanceName: whatsappInstance.instance_name,
     },
     metaAds: {
-      isConnected: Boolean(metaIntegration.is_active && metaIntegration.pixel_id && metaIntegration.access_token),
+      isConnected: Boolean(metaIntegration.access_token || (metaIntegration.is_active && metaIntegration.pixel_id)),
       statusText:
-        metaIntegration.is_active && metaIntegration.pixel_id && metaIntegration.access_token
+        metaIntegration.access_token || (metaIntegration.is_active && metaIntegration.pixel_id)
           ? 'Conectado'
           : 'Desconectado',
-      trackingActive: Boolean(metaIntegration.is_active && metaIntegration.pixel_id && metaIntegration.access_token),
+      trackingActive: Boolean(metaIntegration.access_token || (metaIntegration.is_active && metaIntegration.pixel_id)),
       lastConversionSentAt: metaIntegration.last_conversion_sent_at || 'Nenhuma conversão enviada',
       leadsTrackedCount: leads.filter((l) => !l.is_organic).length,
       purchasesSentCount: leads.filter((l) => l.purchase_sent).length,
@@ -535,10 +535,29 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   const updateTenantMetaConfig = (companyId: string, partial: Partial<MetaIntegration>) => {
     if (!isSuperAdmin) throw new Error('Acesso Negado.');
-    setTenantMetaConfigs((prev) => ({
-      ...prev,
-      [companyId]: { ...prev[companyId], ...partial, updated_at: new Date().toISOString() },
-    }));
+    setTenantMetaConfigs((prev) => {
+      const existing = prev[companyId] || {
+        id: `meta_${companyId}`,
+        company_id: companyId,
+        pixel_id: '',
+        access_token: '',
+        page_id: '',
+        graph_api_version: 'v20.0',
+        last_conversion_sent_at: 'Nenhuma conversão enviada',
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return {
+        ...prev,
+        [companyId]: {
+          ...existing,
+          ...partial,
+          is_active: partial.access_token ? true : (partial.is_active ?? existing.is_active),
+          updated_at: new Date().toISOString(),
+        },
+      };
+    });
   };
 
   const getAllWhatsAppInstances = () => {

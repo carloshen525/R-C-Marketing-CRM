@@ -22,7 +22,9 @@ export class MetaGraphApiService {
   ): Promise<MetaAdMetadata | null> {
     if (!adId) return null;
 
-    if (!accessToken || accessToken.startsWith('demo_')) {
+    const effectiveToken = accessToken || process.env.META_ACCESS_TOKEN || process.env.META_CAPI_ACCESS_TOKEN;
+
+    if (!effectiveToken || effectiveToken.startsWith('demo_')) {
       // In demo mode, return realistic structured Meta Ads metadata
       return {
         adId,
@@ -35,7 +37,7 @@ export class MetaGraphApiService {
     }
 
     try {
-      const url = `${this.GRAPH_BASE_URL}/${this.GRAPH_API_VERSION}/${adId}?fields=id,name,adset{id,name},campaign{id,name}&access_token=${accessToken}`;
+      const url = `${this.GRAPH_BASE_URL}/${this.GRAPH_API_VERSION}/${adId}?fields=id,name,adset{id,name},campaign{id,name}&access_token=${effectiveToken}`;
       const response = await fetch(url);
       if (!response.ok) {
         console.warn(`[MetaGraphApiService] Failed to fetch ad ${adId}, status: ${response.status}`);

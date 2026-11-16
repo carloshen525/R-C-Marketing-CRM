@@ -184,7 +184,7 @@ export class MetaConversionsService {
     payload: Record<string, unknown> = {},
     eventId: string = ''
   ): Promise<CapiSendResult> {
-    const effectiveToken = accessToken || process.env.META_ACCESS_TOKEN;
+    const effectiveToken = accessToken || process.env.META_ACCESS_TOKEN || process.env.META_CAPI_ACCESS_TOKEN;
     let targetPixel = pixelId || process.env.META_PIXEL_ID;
 
     // Auto-discover pixel if missing or placeholder and real token is present
