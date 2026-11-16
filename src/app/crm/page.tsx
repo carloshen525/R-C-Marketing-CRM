@@ -227,8 +227,14 @@ export default function CRMKanbanPage() {
 
       {/* Kanban Board Container (Horizontally Scrollable) */}
       <div className="flex-1 overflow-x-auto p-6 flex gap-5 items-start">
-        {stages.map((stage) => {
-          const stageLeads = filteredLeads.filter((l) => l.stage_id === stage.id);
+        {stages.map((stage, sIdx) => {
+          const stageLeads = filteredLeads.filter((l) => {
+            if (l.stage_id === stage.id) return true;
+            if (sIdx === 0 && (!l.stage_id || l.stage_id === 'stage_new' || !stages.some((s) => s.id === l.stage_id))) {
+              return true;
+            }
+            return false;
+          });
           const stageTotalRevenue = stageLeads.reduce((acc, l) => acc + (l.sale_amount || 0), 0);
           const isOver = dragOverStageId === stage.id;
 

@@ -412,6 +412,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
               );
               const leadFormatted: Lead = {
                 ...sLead,
+                stage_id: (!sLead.stage_id || sLead.stage_id === 'stage_new') ? 'stage_1' : sLead.stage_id,
                 company_id: sLead.company_id || activeCompany.id || 'comp_pedagogicos',
               };
               if (idx >= 0) {

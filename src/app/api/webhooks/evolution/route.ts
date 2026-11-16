@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         : {
             id: leadId,
             company_id: companyId,
-            stage_id: 'stage_new',
+            stage_id: 'stage_1',
             name: pushName,
             phone: rawPhone,
             is_organic: isOrganic,
