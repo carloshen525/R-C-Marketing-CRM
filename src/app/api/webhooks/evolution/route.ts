@@ -113,7 +113,11 @@ export async function POST(req: NextRequest) {
             is_organic: isOrganic,
             ctwa_clid: ctwaClid,
             source_id: sourceId,
-            platform: isFBAds ? 'facebook' : referral ? 'instagram' : 'organic',
+            platform: isOrganic
+              ? 'organic'
+              : (sourceId?.includes('facebook') || referral?.sourceUrl?.includes('facebook'))
+              ? 'facebook'
+              : 'instagram',
             campaign_name: campaignName,
             adset_name: adsetName,
             ad_name: adName,

@@ -325,13 +325,19 @@ export default function CRMKanbanPage() {
                               Orgânico
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 flex items-center gap-1 border border-blue-200/40">
-                              {lead.platform === 'facebook' ? (
-                                <FacebookIcon className="w-2.5 h-2.5" />
-                              ) : (
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 border ${
+                                lead.platform === 'instagram'
+                                  ? 'bg-pink-50 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 border-pink-200/50'
+                                  : 'bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border-blue-200/40'
+                              }`}
+                            >
+                              {lead.platform === 'instagram' ? (
                                 <InstagramIcon className="w-2.5 h-2.5" />
+                              ) : (
+                                <FacebookIcon className="w-2.5 h-2.5" />
                               )}
-                              CTWA
+                              {lead.platform === 'instagram' ? 'Instagram' : 'Facebook'}
                             </span>
                           )}
                         </div>

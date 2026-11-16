@@ -180,7 +180,7 @@ export async function syncEvolutionRecentMessages(
           phone: rawPhone,
           is_organic: !isFBAds,
           ctwa_clid: ctwaPayload,
-          platform: isFBAds ? 'facebook' : 'organic',
+          platform: isFBAds ? 'instagram' : 'organic',
           campaign_name: isFBAds ? 'Campanha Meta Ads • Projeto Saber+' : undefined,
           ad_name: isFBAds ? 'Jogo da Memória das Sílabas' : undefined,
           lead_submitted_sent: false,
