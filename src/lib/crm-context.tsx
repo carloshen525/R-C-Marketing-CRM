@@ -148,6 +148,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         if (savedMeta) {
           setTenantMetaConfigs(JSON.parse(savedMeta));
         }
+        const savedLeads = localStorage.getItem('rc_leads');
+        if (savedLeads) {
+          setAllLeads(JSON.parse(savedLeads));
+        }
         const savedActiveUser = localStorage.getItem('rc_current_user');
         if (savedActiveUser) {
           setCurrentUser(JSON.parse(savedActiveUser));
@@ -190,6 +194,14 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {}
     }
   }, [tenantMetaConfigs]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && allLeads.length > 0) {
+      try {
+        localStorage.setItem('rc_leads', JSON.stringify(allLeads));
+      } catch (e) {}
+    }
+  }, [allLeads]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && currentUser) {
@@ -416,7 +428,14 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
                 company_id: sLead.company_id || activeCompany.id || 'comp_pedagogicos',
               };
               if (idx >= 0) {
-                merged[idx] = { ...merged[idx], ...leadFormatted };
+                const existing = merged[idx];
+                merged[idx] = {
+                  ...leadFormatted,
+                  ...existing,
+                  // Preserve user's moved stage
+                  stage_id: existing.stage_id || leadFormatted.stage_id,
+                  updated_at: existing.updated_at || leadFormatted.updated_at,
+                };
               } else {
                 merged.unshift(leadFormatted);
               }
@@ -659,17 +678,22 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const updatedLead: Lead = {
+      ...targetLead,
+      stage_id: stageId,
+      updated_at: new Date().toISOString(),
+    };
+
     setAllLeads((prev) =>
-      prev.map((l) =>
-        l.id === leadId
-          ? {
-              ...l,
-              stage_id: stageId,
-              updated_at: new Date().toISOString(),
-            }
-          : l
-      )
+      prev.map((l) => (l.id === leadId ? updatedLead : l))
     );
+
+    // Persist immediately to server storage
+    fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedLead),
+    }).catch((err) => console.warn('[CRM] Failed to persist moved lead:', err));
   };
 
   const confirmSale = async (
@@ -864,9 +888,23 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateLead = (leadId: string, partial: Partial<Lead>) => {
+    let updatedLead: Lead | null = null;
     setAllLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, ...partial, updated_at: new Date().toISOString() } : l))
+      prev.map((l) => {
+        if (l.id === leadId) {
+          updatedLead = { ...l, ...partial, updated_at: new Date().toISOString() };
+          return updatedLead;
+        }
+        return l;
+      })
     );
+    if (updatedLead) {
+      fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedLead),
+      }).catch(() => {});
+    }
   };
 
   const addNewLead = async (leadData: Partial<Lead>): Promise<Lead> => {
