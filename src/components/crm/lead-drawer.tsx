@@ -92,9 +92,19 @@ export function LeadDrawer() {
                     Orgânico
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                    {selectedLead.platform === 'facebook' ? <FacebookIcon className="w-3 h-3" /> : <InstagramIcon className="w-3 h-3" />}
-                    CTWA
+                  <span
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 ${
+                      selectedLead.platform === 'instagram'
+                        ? 'bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300'
+                        : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                    }`}
+                  >
+                    {selectedLead.platform === 'instagram' ? (
+                      <InstagramIcon className="w-3 h-3" />
+                    ) : (
+                      <FacebookIcon className="w-3 h-3" />
+                    )}
+                    {selectedLead.platform === 'instagram' ? 'Instagram' : 'Facebook'}
                   </span>
                 )}
               </div>

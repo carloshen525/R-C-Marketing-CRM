@@ -34,6 +34,7 @@ export default function CRMKanbanPage() {
     addStage,
     syncWhatsAppLeads,
     isSyncingLeads,
+    updateLead,
   } = useCRM();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -325,8 +326,15 @@ export default function CRMKanbanPage() {
                               Orgânico
                             </span>
                           ) : (
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 border ${
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const nextPlatform = lead.platform === 'instagram' ? 'facebook' : 'instagram';
+                                updateLead(lead.id, { platform: nextPlatform });
+                              }}
+                              title="Clique para alternar entre Instagram e Facebook"
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 border transition-all hover:scale-105 cursor-pointer ${
                                 lead.platform === 'instagram'
                                   ? 'bg-pink-50 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 border-pink-200/50'
                                   : 'bg-blue-50 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 border-blue-200/40'
@@ -338,7 +346,7 @@ export default function CRMKanbanPage() {
                                 <FacebookIcon className="w-2.5 h-2.5" />
                               )}
                               {lead.platform === 'instagram' ? 'Instagram' : 'Facebook'}
-                            </span>
+                            </button>
                           )}
                         </div>
                       </div>

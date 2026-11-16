@@ -430,11 +430,11 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
               if (idx >= 0) {
                 const existing = merged[idx];
                 merged[idx] = {
-                  ...leadFormatted,
                   ...existing,
-                  // Preserve user's moved stage
+                  ...leadFormatted,
+                  // Keep user's manually assigned stage
                   stage_id: existing.stage_id || leadFormatted.stage_id,
-                  updated_at: existing.updated_at || leadFormatted.updated_at,
+                  platform: leadFormatted.platform || existing.platform,
                 };
               } else {
                 merged.unshift(leadFormatted);
