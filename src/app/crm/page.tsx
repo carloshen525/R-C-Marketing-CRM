@@ -343,10 +343,13 @@ export default function CRMKanbanPage() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const nextPlatform = lead.platform === 'instagram' ? 'facebook' : 'instagram';
-                                updateLead(lead.id, { platform: nextPlatform });
+                                if (lead.platform === 'instagram') {
+                                  updateLead(lead.id, { platform: 'facebook' });
+                                } else {
+                                  updateLead(lead.id, { is_organic: true, platform: 'organic' });
+                                }
                               }}
-                              title="Clique para alternar entre Instagram e Facebook"
+                              title="Clique para alternar entre Instagram, Facebook e Orgânico"
                               className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 border transition-all hover:scale-105 cursor-pointer ${
                                 lead.platform === 'instagram'
                                   ? 'bg-pink-50 dark:bg-pink-950/70 text-pink-700 dark:text-pink-300 border-pink-200/50'
