@@ -322,9 +322,22 @@ export default function CRMKanbanPage() {
                         {/* Origin Badge */}
                         <div>
                           {lead.is_organic ? (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateLead(lead.id, {
+                                  is_organic: false,
+                                  platform: 'instagram',
+                                  campaign_name: lead.campaign_name || '[Eng] [Jogo da Memória das Silabas] [10.11]',
+                                  ad_name: lead.ad_name || '01 - Jogo da Memória das Sílabas',
+                                });
+                              }}
+                              title="Clique para vincular este lead ao Instagram Ads"
+                              className="text-[10px] font-semibold px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-pink-100 dark:hover:bg-pink-950/60 hover:text-pink-600 transition-all cursor-pointer flex items-center gap-1"
+                            >
                               Orgânico
-                            </span>
+                            </button>
                           ) : (
                             <button
                               type="button"
