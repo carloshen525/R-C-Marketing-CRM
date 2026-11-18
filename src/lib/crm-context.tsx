@@ -474,12 +474,18 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
               };
               if (idx >= 0) {
                 const existing = merged[idx];
+                const isOrganic = sLead.is_organic !== undefined ? sLead.is_organic : existing.is_organic;
                 merged[idx] = {
                   ...existing,
                   ...leadFormatted,
+                  is_organic: isOrganic,
+                  platform: isOrganic ? 'organic' : (leadFormatted.platform || existing.platform || 'instagram'),
+                  campaign_name: isOrganic ? undefined : (leadFormatted.campaign_name || existing.campaign_name),
+                  ad_name: isOrganic ? undefined : (leadFormatted.ad_name || existing.ad_name),
+                  ctwa_clid: isOrganic ? undefined : (leadFormatted.ctwa_clid || existing.ctwa_clid),
+                  lead_submitted_sent: isOrganic ? false : (leadFormatted.lead_submitted_sent || existing.lead_submitted_sent),
                   // Keep user's manually assigned stage
                   stage_id: existing.stage_id || leadFormatted.stage_id,
-                  platform: leadFormatted.platform || existing.platform,
                 };
               } else {
                 merged.unshift(leadFormatted);
@@ -977,6 +983,15 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       prev.map((l) => {
         if (l.id === leadId) {
           updatedLead = { ...l, ...partial, updated_at: new Date().toISOString() };
+          if (partial.is_organic) {
+            delete updatedLead.campaign_id;
+            delete updatedLead.campaign_name;
+            delete updatedLead.ad_name;
+            delete updatedLead.ctwa_clid;
+            updatedLead.is_organic = true;
+            updatedLead.platform = 'organic';
+            updatedLead.lead_submitted_sent = false;
+          }
           return updatedLead;
         }
         return l;

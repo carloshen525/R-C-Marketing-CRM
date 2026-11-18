@@ -62,9 +62,19 @@ export function saveLead(lead: Lead): Lead {
           ? existing.purchase_meta_status
           : lead.purchase_meta_status,
       purchase_response_id: existing.purchase_response_id || lead.purchase_response_id,
-      ctwa_clid: lead.ctwa_clid || existing.ctwa_clid,
+      ctwa_clid: lead.is_organic ? undefined : (lead.ctwa_clid || existing.ctwa_clid),
       updated_at: new Date().toISOString(),
     };
+
+    if (lead.is_organic) {
+      delete leads[index].campaign_id;
+      delete leads[index].campaign_name;
+      delete leads[index].ad_name;
+      delete leads[index].ctwa_clid;
+      leads[index].is_organic = true;
+      leads[index].platform = 'organic';
+      leads[index].lead_submitted_sent = false;
+    }
   } else {
     leads.unshift(lead);
   }
