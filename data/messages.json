@@ -10,5 +10,187 @@
       "status": "delivered",
       "created_at": "2026-11-16T21:49:32.000Z"
     }
+  ],
+  "lead_wa_559887522666_cmwm4b7brr21vmv4kkitypig8": [
+    {
+      "id": "cmwm4b7brr21vmv4kkitypig8",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_559887522666_cmwm4b7brr21vmv4kkitypig8",
+      "lead_id": "lead_wa_559887522666_cmwm4b7brr21vmv4kkitypig8",
+      "sender_type": "agent",
+      "message_id": "cmwm4b7brr21vmv4kkitypig8",
+      "content": "Olá! Bom dia, tudo bem ?\nVocê consegue me enviar o pagamento do material hoje ?",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-18T12:49:01.000Z"
+    }
+  ],
+  "lead_wa_558399040844_cmwm20rxlqx82mv4kb1zzxhku": [
+    {
+      "id": "cmwm20rxlqx82mv4kb1zzxhku",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_558399040844_cmwm20rxlqx82mv4kb1zzxhku",
+      "lead_id": "lead_wa_558399040844_cmwm20rxlqx82mv4kb1zzxhku",
+      "sender_type": "agent",
+      "message_id": "cmwm20rxlqx82mv4kb1zzxhku",
+      "content": "Posso enviar o arquivo e a chave PIX?\nVocê me promete que vai pagar para não me prejudicar?",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-18T11:44:55.000Z"
+    }
+  ],
+  "lead_wa_559183608466_cmwlge952qulymv4kaq2x6wnc": [
+    {
+      "id": "cmwlge952qulymv4kaq2x6wnc",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_559183608466_cmwlge952qulymv4kaq2x6wnc",
+      "lead_id": "lead_wa_559183608466_cmwlge952qulymv4kaq2x6wnc",
+      "sender_type": "agent",
+      "message_id": "cmwlge952qulymv4kaq2x6wnc",
+      "content": "Posso enviar o arquivo e a chave PIX?\nVocê me promete que vai pagar para não me prejudicar?",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-18T01:39:32.000Z"
+    }
+  ],
+  "lead_wa_556984746135_cmwf1r6er3vkpmv4kcypza8x4": [
+    {
+      "id": "cmwf1r6er3vkpmv4kcypza8x4",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_556984746135_cmwf1r6er3vkpmv4kcypza8x4",
+      "lead_id": "lead_wa_556984746135_cmwf1r6er3vkpmv4kcypza8x4",
+      "sender_type": "agent",
+      "message_id": "cmwf1r6er3vkpmv4kcypza8x4",
+      "content": "Posso enviar o arquivo e a chave PIX?\nVocê me promete que vai pagar para não me prejudicar?",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-13T14:03:03.000Z"
+    }
+  ],
+  "lead_wa_5512978121616_cmwew71og3uxrmv4k9bkempqo": [
+    {
+      "id": "cmwew71og3uxrmv4k9bkempqo",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_5512978121616_cmwew71og3uxrmv4k9bkempqo",
+      "lead_id": "lead_wa_5512978121616_cmwew71og3uxrmv4k9bkempqo",
+      "sender_type": "agent",
+      "message_id": "cmwew71og3uxrmv4k9bkempqo",
+      "content": "Posso enviar o arquivo e a chave PIX?\nVocê me promete que vai pagar para não me prejudicar?",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-13T11:27:27.000Z"
+    }
+  ],
+  "lead_wa_5524992388904_cmweuwrb43utemv4kxwvsd6bh": [
+    {
+      "id": "cmweuwrb43utemv4kxwvsd6bh",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_5524992388904_cmweuwrb43utemv4kxwvsd6bh",
+      "lead_id": "lead_wa_5524992388904_cmweuwrb43utemv4kxwvsd6bh",
+      "sender_type": "agent",
+      "message_id": "cmweuwrb43utemv4kxwvsd6bh",
+      "content": "Tranquilo rs \nQue bom que gostou do material 😃",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-13T10:51:28.000Z"
+    }
+  ],
+  "lead_wa_559185560171_cmwbdaq8212pomv4kiyuo2b0y": [
+    {
+      "id": "cmwbdaq8212pomv4kiyuo2b0y",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_559185560171_cmwbdaq8212pomv4kiyuo2b0y",
+      "lead_id": "lead_wa_559185560171_cmwbdaq8212pomv4kiyuo2b0y",
+      "sender_type": "agent",
+      "message_id": "cmwbdaq8212pomv4kiyuo2b0y",
+      "content": "Posso enviar o arquivo e a chave PIX?\nVocê me promete que vai pagar para não me prejudicar?",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-11T00:15:07.000Z"
+    }
+  ],
+  "lead_wa_553288869401_cmwbd986y12nymv4kcjd2eplu": [
+    {
+      "id": "cmwbd986y12nymv4kcjd2eplu",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_553288869401_cmwbd986y12nymv4kcjd2eplu",
+      "lead_id": "lead_wa_553288869401_cmwbd986y12nymv4kcjd2eplu",
+      "sender_type": "agent",
+      "message_id": "cmwbd986y12nymv4kcjd2eplu",
+      "content": "Posso enviar o arquivo e a chave PIX?\nVocê me promete que vai pagar para não me prejudicar?",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-11T00:13:57.000Z"
+    }
+  ],
+  "lead_wa_555198833047_cmwb945qs122cmv4kiqrhd609": [
+    {
+      "id": "cmwb945qs122cmv4kiqrhd609",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_555198833047_cmwb945qs122cmv4kiqrhd609",
+      "lead_id": "lead_wa_555198833047_cmwb945qs122cmv4kiqrhd609",
+      "sender_type": "agent",
+      "message_id": "cmwb945qs122cmv4kiqrhd609",
+      "content": "Posso enviar o arquivo e a chave PIX?\nVocê me promete que vai pagar para não me prejudicar?",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-11-10T22:18:02.000Z"
+    }
+  ],
+  "lead_wa_553599943685_cmwalh74q0ztlmv4kspssj35x": [
+    {
+      "id": "cmwalh74q0ztlmv4kspssj35x",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_553599943685_cmwalh74q0ztlmv4kspssj35x",
+      "lead_id": "lead_wa_553599943685_cmwalh74q0ztlmv4kspssj35x",
+      "sender_type": "lead",
+      "message_id": "cmwalh74q0ztlmv4kspssj35x",
+      "content": "Olá! Quero saber mais sobre o Jogo da Memória das Sílabas",
+      "status": "delivered",
+      "is_from_me": false,
+      "created_at": "2026-11-10T11:16:20.000Z"
+    }
+  ],
+  "lead_wa_116660656676967_cmv8px1k03dzwo84jybdts80r": [
+    {
+      "id": "cmv8px1k03dzwo84jybdts80r",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_116660656676967_cmv8px1k03dzwo84jybdts80r",
+      "lead_id": "lead_wa_116660656676967_cmv8px1k03dzwo84jybdts80r",
+      "sender_type": "agent",
+      "message_id": "cmv8px1k03dzwo84jybdts80r",
+      "content": "Mensagem recebida pelo WhatsApp",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-08-31T14:10:02.000Z"
+    }
+  ],
+  "lead_wa_105472199811094_cmv8pxi2m3hyco84j1x4pcpnm": [
+    {
+      "id": "cmv8pxi2m3hyco84j1x4pcpnm",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_105472199811094_cmv8pxi2m3hyco84j1x4pcpnm",
+      "lead_id": "lead_wa_105472199811094_cmv8pxi2m3hyco84j1x4pcpnm",
+      "sender_type": "agent",
+      "message_id": "cmv8pxi2m3hyco84j1x4pcpnm",
+      "content": "Mensagem recebida pelo WhatsApp",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-08-25T13:48:12.000Z"
+    }
+  ],
+  "lead_wa_40914563145795_cmv8pxi2o3hzfo84j4wemvh55": [
+    {
+      "id": "cmv8pxi2o3hzfo84j4wemvh55",
+      "company_id": "comp_pedagogicos",
+      "conversation_id": "conv_lead_wa_40914563145795_cmv8pxi2o3hzfo84j4wemvh55",
+      "lead_id": "lead_wa_40914563145795_cmv8pxi2o3hzfo84j4wemvh55",
+      "sender_type": "agent",
+      "message_id": "cmv8pxi2o3hzfo84j4wemvh55",
+      "content": "Mensagem recebida pelo WhatsApp",
+      "status": "delivered",
+      "is_from_me": true,
+      "created_at": "2026-08-25T11:42:06.000Z"
+    }
   ]
 }

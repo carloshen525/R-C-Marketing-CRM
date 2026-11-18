@@ -28,20 +28,122 @@ export default function DashboardPage() {
   const conversionRate = leads.length > 0 ? (totalWon / leads.length) * 100 : 0;
   const ctwaLeadsCount = leads.filter((l) => !l.is_organic).length;
 
+  const [mounted, setMounted] = React.useState(false);
   const [monthName, setMonthName] = React.useState('Mês Atual');
+  const [leadsTodayCount, setLeadsTodayCount] = React.useState(0);
+  const [dynamicLeadsByDay, setDynamicLeadsByDay] = React.useState<{ date: string; leads: number; sales: number }[]>([]);
+  const [dynamicSalesByDay, setDynamicSalesByDay] = React.useState<{ date: string; revenue: number }[]>([]);
+  const [dynamicTopCampaigns, setDynamicTopCampaigns] = React.useState<
+    { id: string; name: string; leads: number; sales: number; revenue: number; conversionRate: number }[]
+  >([]);
+  const [dynamicTopAds, setDynamicTopAds] = React.useState<
+    { id: string; name: string; campaign: string; revenue: number; sales: number }[]
+  >([]);
 
   React.useEffect(() => {
+    setMounted(true);
     try {
-      const name = new Date().toLocaleString('pt-BR', { month: 'long' });
-      setMonthName(name.charAt(0).toUpperCase() + name.slice(1));
-    } catch (e) {}
-  }, []);
+      const now = new Date();
+      const mName = now.toLocaleString('pt-BR', { month: 'long' });
+      setMonthName(mName.charAt(0).toUpperCase() + mName.slice(1));
+
+      const todayStr = now.toLocaleDateString('pt-BR');
+      const todayCount = leads.filter((l) => {
+        const lDate = new Date(l.created_at || l.first_message_at || 0).toLocaleDateString('pt-BR');
+        return lDate === todayStr;
+      }).length;
+      setLeadsTodayCount(todayCount);
+
+      // 1. Dynamic Leads & Sales by day (Last 7 days)
+      const map = new Map<string, { date: string; leads: number; sales: number }>();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const label = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        map.set(label, { date: label, leads: 0, sales: 0 });
+      }
+
+      leads.forEach((l) => {
+        const dateLabel = new Date(l.created_at || l.first_message_at || 0).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+        });
+        if (map.has(dateLabel)) {
+          const item = map.get(dateLabel)!;
+          item.leads += 1;
+          if (l.sale_status === 'paid') {
+            item.sales += 1;
+          }
+        }
+      });
+      setDynamicLeadsByDay(Array.from(map.values()));
+
+      // 2. Dynamic Sales Revenue by day
+      const paidLeads = leads.filter((l) => l.sale_status === 'paid');
+      const sMap = new Map<string, number>();
+      paidLeads.forEach((l) => {
+        const dateLabel = new Date(l.purchase_sent_at || l.updated_at || 0).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
+        sMap.set(dateLabel, (sMap.get(dateLabel) || 0) + (l.sale_amount || 0));
+      });
+      setDynamicSalesByDay(Array.from(sMap.entries()).map(([date, revenue]) => ({ date, revenue })));
+
+      // 3. Dynamic Top Campaigns ranking
+      const campMap = new Map<string, { id: string; name: string; leads: number; sales: number; revenue: number }>();
+      leads.forEach((l) => {
+        const campName =
+          l.campaign_name ||
+          (l.is_organic ? 'Tráfego Orgânico / Direto' : '[Eng] [Jogo da Memória das Silabas] [10.11]');
+        const campId = l.campaign_id || 'camp_1';
+        if (!campMap.has(campName)) {
+          campMap.set(campName, { id: campId, name: campName, leads: 0, sales: 0, revenue: 0 });
+        }
+        const c = campMap.get(campName)!;
+        c.leads += 1;
+        if (l.sale_status === 'paid') {
+          c.sales += 1;
+          c.revenue += l.sale_amount || 0;
+        }
+      });
+
+      setDynamicTopCampaigns(
+        Array.from(campMap.values())
+          .map((c) => ({
+            ...c,
+            conversionRate: c.leads > 0 ? Number(((c.sales / c.leads) * 100).toFixed(1)) : 0,
+          }))
+          .sort((a, b) => b.revenue - a.revenue || b.sales - a.sales || b.leads - a.leads)
+      );
+
+      // 4. Dynamic Top Ads ranking
+      const adMap = new Map<string, { id: string; name: string; campaign: string; revenue: number; sales: number }>();
+      leads.forEach((l) => {
+        const adName = l.ad_name || (l.is_organic ? 'Mensagem Direta' : '01 - Jogo da Memória das Sílabas');
+        const campName = l.campaign_name || 'Campanha Meta Ads';
+        if (!adMap.has(adName)) {
+          adMap.set(adName, { id: `ad_${adName}`, name: adName, campaign: campName, revenue: 0, sales: 0 });
+        }
+        const a = adMap.get(adName)!;
+        if (l.sale_status === 'paid') {
+          a.sales += 1;
+          a.revenue += l.sale_amount || 0;
+        }
+      });
+
+      setDynamicTopAds(Array.from(adMap.values()).sort((a, b) => b.revenue - a.revenue || b.sales - a.sales));
+    } catch (e) {
+      console.error('Error calculating dashboard metrics:', e);
+    }
+  }, [leads]);
 
   const statCards = [
     {
       label: 'Leads do Dia',
-      value: leads.length.toString(),
-      subtext: 'Novos contatos registrados',
+      value: (leadsTodayCount > 0 ? leadsTodayCount : leads.length).toString(),
+      subtext: leadsTodayCount > 0 ? `${leadsTodayCount} contatos hoje` : 'Total de contatos',
       icon: Users,
       color: 'from-blue-600 to-indigo-600',
       badge: 'Hoje',
@@ -88,7 +190,7 @@ export default function DashboardPage() {
     },
     {
       label: 'ROI Estimado',
-      value: totalRevenue > 0 ? `${(totalRevenue / 1000).toFixed(1)}x` : '0x',
+      value: totalRevenue > 0 ? `${(totalRevenue / 45.12).toFixed(1)}x` : '0x',
       subtext: 'Retorno sobre Ads Meta',
       icon: TrendingUp,
       color: 'from-violet-600 to-purple-700',
@@ -178,22 +280,36 @@ export default function DashboardPage() {
 
           {/* SVG Chart */}
           <div className="h-64 flex items-end gap-6 pt-6 px-4 border-b border-zinc-200 dark:border-zinc-800">
-            {dashboardMetrics.leadsByDay.length > 0 ? (
-              dashboardMetrics.leadsByDay.map((d, index) => {
-                const maxLeads = 40;
-                const leadHeight = (d.leads / maxLeads) * 100;
-                const saleHeight = (d.sales / maxLeads) * 100 * 3;
+            {dynamicLeadsByDay.some((d) => d.leads > 0 || d.sales > 0) ? (
+              dynamicLeadsByDay.map((d, index) => {
+                const maxVal = Math.max(...dynamicLeadsByDay.map((item) => Math.max(item.leads, item.sales)), 2);
+                const leadHeight = (d.leads / maxVal) * 85;
+                const saleHeight = (d.sales / maxVal) * 85;
                 return (
                   <div key={index} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
                     <div className="w-full flex items-end justify-center gap-1.5 h-full">
                       <div
-                        style={{ height: `${leadHeight}%` }}
-                        className="w-1/2 bg-blue-500 hover:bg-blue-600 rounded-t-md transition-all relative group-hover:opacity-90"
-                      />
+                        style={{ height: `${Math.max(leadHeight, d.leads > 0 ? 10 : 0)}%` }}
+                        title={`${d.leads} leads`}
+                        className="w-1/2 bg-blue-500 hover:bg-blue-600 rounded-t-md transition-all relative group-hover:opacity-90 flex items-start justify-center"
+                      >
+                        {d.leads > 0 && (
+                          <span className="text-[10px] font-bold text-blue-100 -mt-4 drop-shadow">
+                            {d.leads}
+                          </span>
+                        )}
+                      </div>
                       <div
-                        style={{ height: `${saleHeight}%` }}
-                        className="w-1/2 bg-emerald-500 hover:bg-emerald-600 rounded-t-md transition-all relative group-hover:opacity-90"
-                      />
+                        style={{ height: `${Math.max(saleHeight, d.sales > 0 ? 10 : 0)}%` }}
+                        title={`${d.sales} vendas`}
+                        className="w-1/2 bg-emerald-500 hover:bg-emerald-600 rounded-t-md transition-all relative group-hover:opacity-90 flex items-start justify-center"
+                      >
+                        {d.sales > 0 && (
+                          <span className="text-[10px] font-bold text-emerald-100 -mt-4 drop-shadow">
+                            {d.sales}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span className="text-xs font-semibold text-zinc-500 pt-2">{d.date}</span>
                   </div>
@@ -223,8 +339,8 @@ export default function DashboardPage() {
             <p className="text-xs text-zinc-500 mb-6">Receita gerada diretamente das conversões via WhatsApp</p>
 
             <div className="space-y-3">
-              {dashboardMetrics.salesByDay.length > 0 ? (
-                dashboardMetrics.salesByDay.slice(-5).map((s, idx) => (
+              {dynamicSalesByDay.length > 0 ? (
+                dynamicSalesByDay.slice(-5).map((s, idx) => (
                   <div key={idx} className="flex items-center justify-between text-xs py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0">
                     <span className="font-semibold text-zinc-600 dark:text-zinc-400">{s.date}</span>
                     <span className="font-bold text-zinc-900 dark:text-zinc-100 min-w-[70px] text-right">
@@ -266,10 +382,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-4">
-            {dashboardMetrics.topCampaigns.length > 0 ? (
-              dashboardMetrics.topCampaigns.map((camp, idx) => (
+            {dynamicTopCampaigns.length > 0 ? (
+              dynamicTopCampaigns.map((camp, idx) => (
                 <div
-                  key={camp.id}
+                  key={camp.id || idx}
                   className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
@@ -312,10 +428,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-4">
-            {dashboardMetrics.topAds.length > 0 ? (
-              dashboardMetrics.topAds.map((ad, idx) => (
+            {dynamicTopAds.length > 0 ? (
+              dynamicTopAds.map((ad, idx) => (
                 <div
-                  key={ad.id}
+                  key={ad.id || idx}
                   className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
