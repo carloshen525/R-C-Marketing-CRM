@@ -35,11 +35,60 @@ export const initialProfiles: Profile[] = [
   },
 ];
 
-export const initialCompanies: Company[] = [];
+export const initialCompanies: Company[] = [
+  {
+    id: 'comp_pedagogicos',
+    tenant_id: 'comp_pedagogicos',
+    name: 'Pedagógicos EU',
+    nome_empresa: 'Pedagógicos EU',
+    trade_name: 'Projeto Saber Mais',
+    slug: 'pedagogicoseu',
+    subdomain: 'pedagogicoseu',
+    subdominio: 'pedagogicoseu',
+    full_subdomain: 'pedagogicoseu.rcmarketingcrm.com.br',
+    owner_name: 'Carlos Henrique',
+    email: 'carloshenrq1245@gmail.com',
+    phone: '+55 62 8200-2147',
+    plan: 'pro',
+    monthly_price: 890,
+    status: 'active',
+    timezone: 'America/Sao_Paulo',
+    created_at: T_NOW,
+    updated_at: T_NOW,
+  },
+];
 
-export const initialWhatsAppInstances: Record<string, WhatsAppInstance> = {};
+export const initialWhatsAppInstances: Record<string, WhatsAppInstance> = {
+  comp_pedagogicos: {
+    id: 'inst_carlos1',
+    company_id: 'comp_pedagogicos',
+    tenant_id: 'comp_pedagogicos',
+    instance_name: 'Carlos1',
+    api_url: 'https://prospeccao-evolution01.pesd8y.easypanel.host',
+    api_key: 'X9mK2vQ7LpR8aNc4HsT1yWf6BgZe3JuD',
+    phone_number: '556282002147',
+    status: 'connected',
+    is_active: true,
+    webhook_url: 'https://prospeccao-recmarketingcrm.pesd8y.easypanel.host/api/webhooks/evolution',
+    created_at: T_NOW,
+    updated_at: T_NOW,
+  },
+};
 
-export const initialMetaIntegrations: Record<string, MetaIntegration> = {};
+export const initialMetaIntegrations: Record<string, MetaIntegration> = {
+  comp_pedagogicos: {
+    id: 'meta_pedagogicos',
+    company_id: 'comp_pedagogicos',
+    tenant_id: 'comp_pedagogicos',
+    pixel_id: '1838816967308658',
+    access_token:
+      'EAAjy7fZAjxjsBSVev7bxevLHPjUA4yhuuy9Hepi1XFjIu1R9OslsXMy1XKf53UdyCh4KiHQbKwGY8eeM9WVh11NY4FNP1ZBZABq0TKzamF6nbaejveNqPBD7ss8DLoawVZAoUaBKVMOqwa3EjsU6jr9O2G94MRXXan8iVpIxusvFZCZBdzSR0rYci3W73OtjFufwZDZD',
+    page_id: '560563063815546',
+    is_active: true,
+    created_at: T_NOW,
+    updated_at: T_NOW,
+  },
+};
 
 export const defaultPipelineStages: PipelineStage[] = [
   { id: 'stage_1', company_id: '', pipeline_id: 'default', name: 'Novos Leads', color: '#3b82f6', order_index: 1, is_won: false, is_lost: false, created_at: T_NOW },

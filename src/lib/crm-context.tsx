@@ -134,19 +134,64 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedCompanies = localStorage.getItem('rc_companies');
         if (savedCompanies) {
-          setAllCompanies(JSON.parse(savedCompanies));
+          try {
+            const parsed = JSON.parse(savedCompanies);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const merged = [...parsed];
+              for (const initC of initialCompanies) {
+                if (!merged.some((c) => c.id === initC.id)) {
+                  merged.push(initC);
+                }
+              }
+              setAllCompanies(merged);
+            } else {
+              setAllCompanies(initialCompanies);
+            }
+          } catch (e) {
+            setAllCompanies(initialCompanies);
+          }
+        } else {
+          setAllCompanies(initialCompanies);
         }
+
+        // Fetch from server API to guarantee cross-device persistence
+        fetch('/api/admin/empresas')
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.companies && Array.isArray(data.companies) && data.companies.length > 0) {
+              setAllCompanies((prev) => {
+                const merged = [...data.companies];
+                for (const p of prev) {
+                  if (!merged.some((m) => m.id === p.id)) {
+                    merged.push(p);
+                  }
+                }
+                return merged;
+              });
+            }
+          })
+          .catch(() => {});
+
         const savedUsers = localStorage.getItem('rc_users');
         if (savedUsers) {
           setAllUsers(JSON.parse(savedUsers));
         }
         const savedInstances = localStorage.getItem('rc_instances');
         if (savedInstances) {
-          setTenantEvolutionConfigs(JSON.parse(savedInstances));
+          try {
+            setTenantEvolutionConfigs({ ...initialWhatsAppInstances, ...JSON.parse(savedInstances) });
+          } catch (e) {}
+        } else {
+          setTenantEvolutionConfigs(initialWhatsAppInstances);
         }
+
         const savedMeta = localStorage.getItem('rc_meta');
         if (savedMeta) {
-          setTenantMetaConfigs(JSON.parse(savedMeta));
+          try {
+            setTenantMetaConfigs({ ...initialMetaIntegrations, ...JSON.parse(savedMeta) });
+          } catch (e) {}
+        } else {
+          setTenantMetaConfigs(initialMetaIntegrations);
         }
         const savedLeads = localStorage.getItem('rc_leads');
         if (savedLeads) {
@@ -572,6 +617,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     setTenantEvolutionConfigs((prev) => ({ ...prev, [companyId]: newEvolutionInstance }));
     setTenantMetaConfigs((prev) => ({ ...prev, [companyId]: newMetaIntegration }));
 
+    // Persist to server API
+    fetch('/api/admin/empresas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCompany),
+    }).catch(() => {});
+
     setMasterMetrics((prev) => ({
       ...prev,
       totalCompanies: prev.totalCompanies + 1,
@@ -589,7 +641,18 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const updateCompany = (id: string, partial: Partial<Company>) => {
     if (!isSuperAdmin) throw new Error('Acesso Negado.');
     setAllCompanies((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, ...partial, updated_at: new Date().toISOString() } : c))
+      prev.map((c) => {
+        if (c.id === id) {
+          const updated = { ...c, ...partial, updated_at: new Date().toISOString() };
+          fetch('/api/admin/empresas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(() => {});
+          return updated;
+        }
+        return c;
+      })
     );
   };
 
@@ -599,7 +662,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       prev.map((c) => {
         if (c.id === id) {
           const nextStatus: CompanyStatus = c.status === 'active' ? 'suspended' : 'active';
-          return { ...c, status: nextStatus, updated_at: new Date().toISOString() };
+          const updated = { ...c, status: nextStatus, updated_at: new Date().toISOString() };
+          fetch('/api/admin/empresas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated),
+          }).catch(() => {});
+          return updated;
         }
         return c;
       })
@@ -609,6 +678,9 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   const deleteCompany = (id: string) => {
     if (!isSuperAdmin) throw new Error('Acesso Negado.');
     setAllCompanies((prev) => prev.filter((c) => c.id !== id));
+    fetch(`/api/admin/empresas?id=${id}`, {
+      method: 'DELETE',
+    }).catch(() => {});
   };
 
   const updateTenantEvolutionConfig = (companyId: string, partial: Partial<WhatsAppInstance>) => {

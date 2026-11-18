@@ -1,0 +1,22 @@
+[
+  {
+    "id": "comp_pedagogicos",
+    "tenant_id": "comp_pedagogicos",
+    "name": "Pedagógicos EU",
+    "nome_empresa": "Pedagógicos EU",
+    "trade_name": "Projeto Saber Mais",
+    "slug": "pedagogicoseu",
+    "subdomain": "pedagogicoseu",
+    "subdominio": "pedagogicoseu",
+    "full_subdomain": "pedagogicoseu.rcmarketingcrm.com.br",
+    "owner_name": "Carlos Henrique",
+    "email": "carloshenrq1245@gmail.com",
+    "phone": "+55 62 8200-2147",
+    "plan": "pro",
+    "monthly_price": 890,
+    "status": "active",
+    "timezone": "America/Sao_Paulo",
+    "created_at": "2026-11-18T15:31:56.618Z",
+    "updated_at": "2026-11-18T15:31:56.626Z"
+  }
+]
