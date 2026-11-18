@@ -178,32 +178,30 @@ export async function syncEvolutionRecentMessages(
         lm?.message?.imageMessage?.caption ||
         'Mensagem recebida pelo WhatsApp';
 
-      // CTWA Detection
+      // CTWA Detection - Only consider Meta Ads if verified conversionSource or ctwaClid is present
       const contextInfo =
         lm?.contextInfo ||
         lm?.message?.extendedTextMessage?.contextInfo ||
+        lm?.message?.conversation?.contextInfo ||
         lm?.message?.imageMessage?.contextInfo;
-
-      const isFBAds =
-        contextInfo?.conversionSource === 'FB_Ads' ||
-        Boolean(contextInfo?.ctwaPayload) ||
-        Boolean(contextInfo?.conversionData) ||
-        Boolean(contextInfo?.externalAdReply) ||
-        Boolean(messageContent && (messageContent.includes('Sílabas') || messageContent.includes('Silabas') || messageContent.includes('Jogo da Memória')));
-
-      // Filter relevant leads for this pedagogical tenant
-      const isPedagogical =
-        isFBAds ||
-        Boolean(messageContent && (messageContent.includes('material') || messageContent.includes('PIX') || messageContent.includes('arquivo') || messageContent.includes('pedagogico')));
-
-      if (!isPedagogical && !isFBAds) {
-        continue;
-      }
 
       const ctwaPayload =
         contextInfo?.externalAdReply?.ctwaClid ||
         contextInfo?.ctwaPayload ||
         contextInfo?.conversionData;
+
+      const isFBAds =
+        contextInfo?.conversionSource === 'FB_Ads' ||
+        Boolean(ctwaPayload);
+
+      // Filter relevant leads for this pedagogical tenant
+      const isPedagogical =
+        isFBAds ||
+        Boolean(messageContent && (messageContent.includes('Sílabas') || messageContent.includes('Silabas') || messageContent.includes('Jogo da Memória') || messageContent.includes('material') || messageContent.includes('PIX') || messageContent.includes('arquivo') || messageContent.includes('pedagogico')));
+
+      if (!isPedagogical && !isFBAds) {
+        continue;
+      }
 
       const platform =
         contextInfo?.entryPointConversionApp ||
@@ -227,11 +225,11 @@ export async function syncEvolutionRecentMessages(
           id: leadId,
           company_id: companyId,
           stage_id: 'stage_1',
-          name: pushName,
+          name: (pushName && pushName !== 'Você') ? pushName : `Lead ${rawPhone.slice(-4)}`,
           phone: rawPhone,
           is_organic: !isFBAds,
           ctwa_clid: ctwaPayload || undefined,
-          platform: platform === 'instagram' ? 'instagram' : platform === 'facebook' ? 'facebook' : 'organic',
+          platform: isFBAds ? (platform === 'facebook' ? 'facebook' : 'instagram') : 'organic',
           campaign_id: isFBAds ? '120250535297470101' : undefined,
           campaign_name: isFBAds ? campaignName : undefined,
           ad_name: isFBAds ? adName : undefined,
@@ -267,18 +265,28 @@ export async function syncEvolutionRecentMessages(
       } else {
         // Update existing lead details if improved (e.g. ctwa_clid found, newer interaction)
         let updated = false;
-        if (!existing.ctwa_clid && ctwaPayload) {
+
+        // Improve name if previously 'Você' or generic
+        if ((!existing.name || existing.name === 'Você' || existing.name === 'Lead WhatsApp') && pushName && pushName !== 'Você') {
+          existing.name = pushName;
+          updated = true;
+        }
+
+        // Only attach CTWA if genuinely discovered from ad payload and not already set
+        if (!existing.ctwa_clid && ctwaPayload && !existing.is_organic) {
           existing.ctwa_clid = ctwaPayload;
           existing.is_organic = false;
-          existing.platform = platform === 'instagram' ? 'instagram' : 'facebook';
+          existing.platform = platform === 'facebook' ? 'facebook' : 'instagram';
           existing.campaign_name = campaignName;
           existing.ad_name = adName;
           updated = true;
         }
+
         if (msgTime > (existing.last_interaction_at || '')) {
           existing.last_interaction_at = msgTime;
           updated = true;
         }
+
         if (updated) {
           saveLead(existing);
         }
