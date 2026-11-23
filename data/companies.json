@@ -1,5 +1,25 @@
 [
   {
+    "id": "comp_amadeus",
+    "tenant_id": "comp_amadeus",
+    "name": "Amadeus Instituto de Artes",
+    "nome_empresa": "Amadeus Instituto de Artes",
+    "trade_name": "Amadeus Instituto de Artes",
+    "slug": "amadeus",
+    "subdomain": "amadeus",
+    "subdominio": "amadeus",
+    "full_subdomain": "amadeus.rcmarketingcrm.com.br",
+    "owner_name": "Carlos Henrique",
+    "email": "caliocarloshenrique14@gmail.com",
+    "phone": "+55 62 8200-2147",
+    "plan": "pro",
+    "monthly_price": 890,
+    "status": "active",
+    "timezone": "America/Sao_Paulo",
+    "created_at": "2026-11-23T18:00:00.000Z",
+    "updated_at": "2026-11-23T18:00:00.000Z"
+  },
+  {
     "id": "comp_pedagogicos",
     "tenant_id": "comp_pedagogicos",
     "name": "Pedagógicos EU",

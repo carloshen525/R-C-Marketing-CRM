@@ -6,8 +6,8 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const sync = searchParams.get('sync') === 'true';
-    const instance = searchParams.get('instance') || 'Carlos1';
-    const companyId = searchParams.get('company_id') || 'comp_pedagogicos';
+    const instance = searchParams.get('instance');
+    const companyId = searchParams.get('company_id');
 
     if (sync && instance && companyId) {
       await syncEvolutionRecentMessages(instance, companyId);

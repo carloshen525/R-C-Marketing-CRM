@@ -107,13 +107,13 @@ export default function LoginPage() {
         };
       }
 
-      // 2. Check if client login
+      // 2. Check if client login for Amadeus Instituto de Artes
       if (!foundUser && cleanEmail === 'caliocarloshenrique14@gmail.com') {
-        foundUser = {
-          id: 'user_client_carlos',
-          tenant_id: 'comp_pedagogicos',
-          company_id: 'comp_pedagogicos',
-          full_name: 'Carlos Henrique (Cliente)',
+        foundUser = candidateUsers.find((u) => u.email.toLowerCase() === 'caliocarloshenrique14@gmail.com') || {
+          id: 'user_amadeus_admin',
+          tenant_id: 'comp_amadeus',
+          company_id: 'comp_amadeus',
+          full_name: 'Carlos Henrique (Amadeus)',
           email: 'caliocarloshenrique14@gmail.com',
           role: 'client_admin',
           is_active: true,
@@ -140,10 +140,11 @@ export default function LoginPage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem('rc_current_user', JSON.stringify(foundUser));
         localStorage.setItem('rc_env_mode', isMaster ? 'master' : 'client');
-        document.cookie = `rc_user_role=${foundUser.role}; path=/; max-age=86400; SameSite=Lax`;
         if (foundUser.tenant_id) {
+          localStorage.setItem('rc_active_company', foundUser.tenant_id);
           document.cookie = `rc_tenant_id=${foundUser.tenant_id}; path=/; max-age=86400; SameSite=Lax`;
         }
+        document.cookie = `rc_user_role=${foundUser.role}; path=/; max-age=86400; SameSite=Lax`;
       }
 
       // Set cookie for middleware

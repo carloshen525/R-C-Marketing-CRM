@@ -200,7 +200,12 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         }
         const savedActiveUser = localStorage.getItem('rc_current_user');
         if (savedActiveUser) {
-          setCurrentUser(JSON.parse(savedActiveUser));
+          const parsedUser = JSON.parse(savedActiveUser);
+          if (parsedUser.email?.toLowerCase() === 'caliocarloshenrique14@gmail.com') {
+            parsedUser.tenant_id = 'comp_amadeus';
+            parsedUser.company_id = 'comp_amadeus';
+          }
+          setCurrentUser(parsedUser);
         }
       } catch (e) {
         console.error('Failed to load state from localStorage', e);

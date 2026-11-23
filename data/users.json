@@ -1,0 +1,22 @@
+[
+  {
+    "id": "user_master_carlos",
+    "tenant_id": null,
+    "company_id": null,
+    "full_name": "Carlos Henrique (Master)",
+    "email": "carloshenrq1245@gmail.com",
+    "role": "super_admin",
+    "is_active": true,
+    "phone": "+55 62 8200-2147"
+  },
+  {
+    "id": "user_amadeus_admin",
+    "tenant_id": "comp_amadeus",
+    "company_id": "comp_amadeus",
+    "full_name": "Carlos Henrique (Amadeus)",
+    "email": "caliocarloshenrique14@gmail.com",
+    "role": "client_admin",
+    "is_active": true,
+    "phone": "+55 62 8200-2147"
+  }
+]

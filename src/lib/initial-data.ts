@@ -34,12 +34,12 @@ export const initialProfiles: Profile[] = [
     created_at: T_NOW,
     updated_at: T_NOW,
   },
-  // Client Admin Account
+  // Client Admin Account - Amadeus Instituto de Artes
   {
-    id: 'user_client_carlos',
-    tenant_id: 'comp_pedagogicos',
-    company_id: 'comp_pedagogicos',
-    full_name: 'Carlos Henrique (Cliente)',
+    id: 'user_amadeus_admin',
+    tenant_id: 'comp_amadeus',
+    company_id: 'comp_amadeus',
+    full_name: 'Carlos Henrique (Amadeus)',
     email: 'caliocarloshenrique14@gmail.com',
     role: 'client_admin',
     is_active: true,
@@ -50,6 +50,26 @@ export const initialProfiles: Profile[] = [
 ];
 
 export const initialCompanies: Company[] = [
+  {
+    id: 'comp_amadeus',
+    tenant_id: 'comp_amadeus',
+    name: 'Amadeus Instituto de Artes',
+    nome_empresa: 'Amadeus Instituto de Artes',
+    trade_name: 'Amadeus Instituto de Artes',
+    slug: 'amadeus',
+    subdomain: 'amadeus',
+    subdominio: 'amadeus',
+    full_subdomain: 'amadeus.rcmarketingcrm.com.br',
+    owner_name: 'Carlos Henrique',
+    email: 'caliocarloshenrique14@gmail.com',
+    phone: '+55 62 8200-2147',
+    plan: 'pro',
+    monthly_price: 890,
+    status: 'active',
+    timezone: 'America/Sao_Paulo',
+    created_at: T_NOW,
+    updated_at: T_NOW,
+  },
   {
     id: 'comp_pedagogicos',
     tenant_id: 'comp_pedagogicos',

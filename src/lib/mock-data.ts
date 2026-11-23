@@ -93,12 +93,12 @@ export const mockProfiles: Profile[] = [
     created_at: '2026-01-01T10:00:00Z',
     updated_at: '2026-01-01T10:00:00Z',
   },
-  // Client Admin Account
+  // Client Admin Account - Amadeus Instituto de Artes
   {
-    id: 'user_client_carlos',
-    tenant_id: 'comp_pedagogicos',
-    company_id: 'comp_pedagogicos',
-    full_name: 'Carlos Henrique (Cliente)',
+    id: 'user_amadeus_admin',
+    tenant_id: 'comp_amadeus',
+    company_id: 'comp_amadeus',
+    full_name: 'Carlos Henrique (Amadeus)',
     email: 'caliocarloshenrique14@gmail.com',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
     role: 'client_admin',
