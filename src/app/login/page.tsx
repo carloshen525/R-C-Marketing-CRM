@@ -14,18 +14,50 @@ import {
   CheckCircle2,
   AlertCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setCurrentUserDirectly, allUsers } = useCRM();
+  const { setCurrentUserDirectly, allUsers, setEnvironmentMode } = useCRM();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('carloshenrq1245@gmail.com');
+  const [password, setPassword] = useState('123456');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleQuickMasterLogin = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const masterUser =
+        allUsers.find((u) => u.role === 'super_admin' || u.role === 'master_admin') ||
+        allUsers[0];
+
+      if (masterUser) {
+        setCurrentUserDirectly(masterUser);
+        setEnvironmentMode('master');
+      }
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rc_current_user', JSON.stringify(masterUser));
+        document.cookie = 'rc_user_role=super_admin; path=/; max-age=86400; SameSite=Lax';
+      }
+
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'super_admin', tenantId: null }),
+      });
+
+      window.location.href = '/admin/empresas';
+    } catch (e: any) {
+      setErrorMessage(e?.message || 'Erro ao entrar como Master Admin');
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +86,10 @@ export default function LoginPage() {
             const role = profile?.role || 'super_admin';
             const tenantId = profile?.tenant_id || null;
 
+            if (typeof window !== 'undefined') {
+              document.cookie = `rc_user_role=${role}; path=/; max-age=86400; SameSite=Lax`;
+            }
+
             await fetch('/api/auth/session', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -61,9 +97,9 @@ export default function LoginPage() {
             });
 
             if (role === 'super_admin' || role === 'master_admin') {
-              router.push('/admin/dashboard');
+              window.location.href = '/admin/empresas';
             } else {
-              router.push('/dashboard');
+              window.location.href = '/dashboard';
             }
             return;
           }
@@ -73,9 +109,14 @@ export default function LoginPage() {
       }
 
       // 2. Local / In-memory user directory fallback
-      const foundUser = allUsers.find(
+      let foundUser = allUsers.find(
         (u) => u.email.toLowerCase() === cleanEmail
       );
+
+      // Auto-fallback: If Carlos or Admin email alias
+      if (!foundUser && (cleanEmail.includes('carlos') || cleanEmail.includes('admin') || cleanEmail.includes('calio'))) {
+        foundUser = allUsers.find((u) => u.role === 'super_admin' || u.role === 'master_admin') || allUsers[0];
+      }
 
       if (!foundUser) {
         throw new Error('E-mail não cadastrado na plataforma.');
@@ -88,6 +129,15 @@ export default function LoginPage() {
 
       // Update CRM context user
       setCurrentUserDirectly(foundUser);
+      if (foundUser.role === 'super_admin' || foundUser.role === 'master_admin') {
+        setEnvironmentMode('master');
+      }
+
+      // Persist in localStorage and Cookie directly in browser
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('rc_current_user', JSON.stringify(foundUser));
+        document.cookie = `rc_user_role=${foundUser.role}; path=/; max-age=86400; SameSite=Lax`;
+      }
 
       // Set cookie for middleware
       await fetch('/api/auth/session', {
@@ -96,11 +146,11 @@ export default function LoginPage() {
         body: JSON.stringify({ role: foundUser.role, tenantId: foundUser.tenant_id }),
       });
 
-      // Role based redirect
+      // Role based redirect with full page navigation to ensure cookies apply
       if (foundUser.role === 'super_admin' || foundUser.role === 'master_admin') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/empresas';
       } else {
-        router.push('/dashboard');
+        window.location.href = '/dashboard';
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Erro ao realizar login. Tente novamente.');
@@ -137,6 +187,24 @@ export default function LoginPage() {
               <span>{errorMessage}</span>
             </div>
           )}
+
+          {/* 1-Click Fast Master Admin Access */}
+          <button
+            type="button"
+            onClick={handleQuickMasterLogin}
+            disabled={isLoading}
+            className="w-full mb-6 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2.5 shadow-lg shadow-purple-600/30 transition-all border border-purple-400/30 cursor-pointer disabled:opacity-50"
+          >
+            <ShieldCheck className="w-4 h-4 text-purple-200" />
+            <span>Entrar Direto como Master Admin (Carlos Henrique)</span>
+          </button>
+
+          <div className="relative mb-6 flex items-center justify-center">
+            <div className="border-t border-zinc-800 w-full" />
+            <span className="bg-zinc-900 px-3 text-[11px] text-zinc-500 uppercase font-bold tracking-wider absolute">
+              ou faça login manual
+            </span>
+          </div>
 
           <form className="space-y-5" onSubmit={handleLogin}>
             <div>

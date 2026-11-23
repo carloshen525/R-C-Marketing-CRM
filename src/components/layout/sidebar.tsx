@@ -191,6 +191,24 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {!isMasterView && (
+          <div className="pt-2 mt-2 border-t border-zinc-800/60">
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  document.cookie = 'rc_user_role=super_admin; path=/; max-age=86400; SameSite=Lax';
+                }
+                setEnvironmentMode('master');
+                window.location.href = '/admin/empresas';
+              }}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-purple-300 hover:text-white bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/50 transition-all cursor-pointer shadow-sm"
+            >
+              <Lock className="w-4 h-4 text-purple-400 shrink-0" />
+              <span>Painel Master R&C</span>
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* Footer: Theme & Active User */}

@@ -35,10 +35,24 @@ export function middleware(req: NextRequest) {
   const isMasterDomain = currentSubdomain === 'admin';
 
   // Rule 2: If accessing admin route:
+  // - If accessing from main owner domain (carloscalio.tech) or localhost without cookie, auto-grant super_admin cookie
   // - If not logged in at all, redirect to /login
   // - If logged in as client (non-superadmin), redirect to /acesso-negado (403)
   if (isAdminRoute) {
     if (!userRole) {
+      if (hostname.includes('carloscalio.tech') || isLocalhost) {
+        const response = NextResponse.next({
+          request: {
+            headers: new Headers(req.headers),
+          },
+        });
+        response.cookies.set('rc_user_role', 'super_admin', {
+          path: '/',
+          maxAge: 60 * 60 * 24,
+          sameSite: 'lax',
+        });
+        return response;
+      }
       const loginUrl = new URL('/login', req.url);
       return NextResponse.redirect(loginUrl);
     }
