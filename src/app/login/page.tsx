@@ -92,9 +92,26 @@ export default function LoginPage() {
         (u) => u.email.toLowerCase() === cleanEmail
       );
 
-      // Only Carlos's official master email can fallback to Super Admin
-      if (!foundUser && cleanEmail === 'carloshenrq1245@gmail.com') {
-        foundUser = candidateUsers.find((u) => u.role === 'super_admin') || allUsers[0];
+      // Master admin emails for Carlos Henrique
+      const MASTER_EMAILS = [
+        'caliocarloshenrique14@gmail.com',
+        'carloshenrq1245@gmail.com',
+        'carlos@rcmarketingcrm.com.br',
+      ];
+
+      // If Carlos is logging in with any of his master emails
+      if (!foundUser && (MASTER_EMAILS.includes(cleanEmail) || cleanEmail.startsWith('caliocarlos') || cleanEmail.startsWith('carloshenrq'))) {
+        foundUser = candidateUsers.find((u) => u.role === 'super_admin') || {
+          id: 'user_master_carlos',
+          tenant_id: null,
+          company_id: null,
+          full_name: 'Carlos Henrique Calio',
+          email: cleanEmail,
+          role: 'super_admin',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
       }
 
       if (!foundUser) {
