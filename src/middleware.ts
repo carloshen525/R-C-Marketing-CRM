@@ -48,12 +48,12 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // Rule 3: If on client subdomain, block access to any admin routes and ensure tenant isolation
-  if (currentSubdomain && currentSubdomain !== 'admin' && currentSubdomain !== 'app') {
-    if (isAdminRoute) {
-      const clientDashboardUrl = new URL('/dashboard', req.url);
-      return NextResponse.redirect(clientDashboardUrl);
-    }
+  // Rule 3: If on client tenant subdomain, block access to any admin routes and ensure tenant isolation
+  // Platform domains that allow admin access: 'admin', 'app', 'crm', 'www', or root
+  const isPlatformSubdomain = !currentSubdomain || ['admin', 'app', 'crm', 'www'].includes(currentSubdomain);
+  if (!isPlatformSubdomain && isAdminRoute) {
+    const clientDashboardUrl = new URL('/crm', req.url);
+    return NextResponse.redirect(clientDashboardUrl);
   }
 
   // Rule 4: If on admin subdomain and accessing client root, route to /admin/dashboard

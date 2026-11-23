@@ -143,6 +143,9 @@ export default function LoginPage() {
         if (foundUser.tenant_id) {
           localStorage.setItem('rc_active_company', foundUser.tenant_id);
           document.cookie = `rc_tenant_id=${foundUser.tenant_id}; path=/; max-age=86400; SameSite=Lax`;
+        } else {
+          localStorage.removeItem('rc_active_company');
+          document.cookie = 'rc_tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
         }
         document.cookie = `rc_user_role=${foundUser.role}; path=/; max-age=86400; SameSite=Lax`;
       }

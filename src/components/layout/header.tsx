@@ -127,13 +127,22 @@ export function Header() {
           </div>
 
           {/* Login / Sair shortcut */}
-          <Link
-            href="/login"
-            className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 transition-colors"
-            title="Ir para tela de Login / Trocar de Conta"
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('rc_current_user');
+                localStorage.removeItem('rc_env_mode');
+                localStorage.removeItem('rc_active_company');
+                document.cookie = 'rc_user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
+                document.cookie = 'rc_tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
+                window.location.href = '/login';
+              }
+            }}
+            className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-[11px] font-bold text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+            title="Sair da Plataforma / Trocar de Conta"
           >
             Sair
-          </Link>
+          </button>
         </div>
       </header>
 

@@ -222,13 +222,22 @@ export function Sidebar() {
                 : 'Atendente'}
             </p>
           </div>
-          <Link
-            href="/login"
-            className="text-[10px] text-zinc-400 hover:text-rose-400 font-semibold transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-800"
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem('rc_current_user');
+                localStorage.removeItem('rc_env_mode');
+                localStorage.removeItem('rc_active_company');
+                document.cookie = 'rc_user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
+                document.cookie = 'rc_tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax';
+                window.location.href = '/login';
+              }
+            }}
+            className="text-[10px] text-zinc-400 hover:text-rose-400 font-semibold transition-colors px-1.5 py-0.5 rounded hover:bg-zinc-800 cursor-pointer"
             title="Sair da Plataforma"
           >
             Sair
-          </Link>
+          </button>
         </div>
       </div>
     </aside>
