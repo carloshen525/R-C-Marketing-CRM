@@ -8,7 +8,6 @@ import {
   Calendar,
   CheckCircle2,
   DollarSign,
-  TrendingUp,
   Percent,
   Award,
   ArrowUpRight,
@@ -188,14 +187,6 @@ export default function DashboardPage() {
       color: 'from-rose-500 to-pink-600',
       badge: 'Taxa',
     },
-    {
-      label: 'ROI Estimado',
-      value: totalRevenue > 0 ? `${(totalRevenue / 45.12).toFixed(1)}x` : '0x',
-      subtext: 'Retorno sobre Ads Meta',
-      icon: TrendingUp,
-      color: 'from-violet-600 to-purple-700',
-      badge: 'ROAS',
-    },
   ];
 
   return (
@@ -223,7 +214,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
           return (
