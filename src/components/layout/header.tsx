@@ -53,18 +53,11 @@ export function Header() {
       <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-10">
         {/* Left: Subdomain or Master Admin Indicator */}
         <div className="flex items-center gap-3">
-          {isSuperAdmin && environmentMode === 'master' ? (
+          {isSuperAdmin && environmentMode === 'master' && (
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" />
                 Painel Master (Uso Interno R&C Marketing)
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold font-mono flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5" />
-                {activeCompany.name} • {activeCompany.full_subdomain}
               </span>
             </div>
           )}

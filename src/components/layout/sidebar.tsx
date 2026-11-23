@@ -142,24 +142,6 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Tenant Subdomain / Context - Rendered for Regular Clients */}
-      {!isSuperAdmin && (
-        <div className="mx-3 mt-3 p-2.5 rounded-xl bg-zinc-800/70 border border-zinc-700/50 space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1">
-              <Globe className="w-3 h-3 text-emerald-400" />
-              Ambiente da Empresa
-            </span>
-            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">
-              Isolado
-            </span>
-          </div>
-          <div className="font-mono text-[11px] font-bold text-zinc-100 truncate">
-            {activeCompany.full_subdomain}
-          </div>
-        </div>
-      )}
-
       {/* Main Nav Items */}
       <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
         <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 px-3 py-1">
