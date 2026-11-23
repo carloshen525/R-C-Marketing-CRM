@@ -21,25 +21,27 @@ const T_NOW = new Date().toISOString();
  */
 
 export const initialProfiles: Profile[] = [
+  // Master Super Admin (R&C Marketing Owner)
   {
     id: 'user_master_carlos',
     tenant_id: null,
     company_id: null,
-    full_name: 'Carlos Henrique Calio',
-    email: 'caliocarloshenrique14@gmail.com',
+    full_name: 'Carlos Henrique (Master)',
+    email: 'carloshenrq1245@gmail.com',
     role: 'super_admin',
     is_active: true,
     phone: '+55 62 8200-2147',
     created_at: T_NOW,
     updated_at: T_NOW,
   },
+  // Client Admin Account
   {
-    id: 'user_master_carlos_alt',
-    tenant_id: null,
-    company_id: null,
-    full_name: 'Carlos Henrique',
-    email: 'carloshenrq1245@gmail.com',
-    role: 'super_admin',
+    id: 'user_client_carlos',
+    tenant_id: 'comp_pedagogicos',
+    company_id: 'comp_pedagogicos',
+    full_name: 'Carlos Henrique (Cliente)',
+    email: 'caliocarloshenrique14@gmail.com',
+    role: 'client_admin',
     is_active: true,
     phone: '+55 62 8200-2147',
     created_at: T_NOW,

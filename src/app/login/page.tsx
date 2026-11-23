@@ -92,22 +92,30 @@ export default function LoginPage() {
         (u) => u.email.toLowerCase() === cleanEmail
       );
 
-      // Master admin emails for Carlos Henrique
-      const MASTER_EMAILS = [
-        'caliocarloshenrique14@gmail.com',
-        'carloshenrq1245@gmail.com',
-        'carlos@rcmarketingcrm.com.br',
-      ];
-
-      // If Carlos is logging in with any of his master emails
-      if (!foundUser && (MASTER_EMAILS.includes(cleanEmail) || cleanEmail.startsWith('caliocarlos') || cleanEmail.startsWith('carloshenrq'))) {
+      // 1. Check if user is Super Admin (Owner of SaaS)
+      if (!foundUser && cleanEmail === 'carloshenrq1245@gmail.com') {
         foundUser = candidateUsers.find((u) => u.role === 'super_admin') || {
           id: 'user_master_carlos',
           tenant_id: null,
           company_id: null,
-          full_name: 'Carlos Henrique Calio',
-          email: cleanEmail,
+          full_name: 'Carlos Henrique (Master)',
+          email: 'carloshenrq1245@gmail.com',
           role: 'super_admin',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      }
+
+      // 2. Check if client login
+      if (!foundUser && cleanEmail === 'caliocarloshenrique14@gmail.com') {
+        foundUser = {
+          id: 'user_client_carlos',
+          tenant_id: 'comp_pedagogicos',
+          company_id: 'comp_pedagogicos',
+          full_name: 'Carlos Henrique (Cliente)',
+          email: 'caliocarloshenrique14@gmail.com',
+          role: 'client_admin',
           is_active: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),

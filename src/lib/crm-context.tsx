@@ -722,6 +722,12 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify(newCompany),
     }).catch(() => {});
 
+    fetch('/api/auth/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(initialAdmin),
+    }).catch(() => {});
+
     setMasterMetrics((prev) => ({
       ...prev,
       totalCompanies: prev.totalCompanies + 1,

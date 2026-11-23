@@ -41,9 +41,9 @@ export function getStoredUsers(): Profile[] {
       const companies = JSON.parse(fs.readFileSync(COMPANIES_FILE, 'utf-8'));
       if (Array.isArray(companies)) {
         for (const c of companies) {
-          if (!c.id || c.id === 'comp_pedagogicos') continue;
+          if (!c.id) continue;
           const email = (c.email || '').toLowerCase().trim();
-          if (!email) continue;
+          if (!email || email === 'carloshenrq1245@gmail.com') continue;
 
           if (!users.some((u) => u.email.toLowerCase() === email)) {
             users.push({

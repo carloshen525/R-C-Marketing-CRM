@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { initialCompanies } from '@/lib/initial-data';
 import { Company } from '@/lib/types';
+import { saveUser } from '@/lib/server/users-storage';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const COMPANIES_FILE = path.join(DATA_DIR, 'companies.json');
@@ -83,6 +84,27 @@ export async function POST(req: NextRequest) {
     }
 
     saveStoredCompanies(companies);
+
+    // Automatically ensure company client_admin user exists in users storage
+    if (body.email && body.email.toLowerCase() !== 'carloshenrq1245@gmail.com') {
+      try {
+        saveUser({
+          id: `user_${body.subdomain || body.id}_admin`,
+          tenant_id: body.id,
+          company_id: body.id,
+          full_name: body.owner_name || body.name || 'Admin da Empresa',
+          email: body.email.toLowerCase().trim(),
+          role: 'client_admin',
+          is_active: true,
+          phone: body.phone || '',
+          created_at: body.created_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.error('[Empresas API] Error auto-saving user for company:', e);
+      }
+    }
+
     return NextResponse.json({ status: 'saved', company: body, companies });
   } catch (e: any) {
     return NextResponse.json({ error: e.message || 'Erro ao salvar empresa' }, { status: 500 });
