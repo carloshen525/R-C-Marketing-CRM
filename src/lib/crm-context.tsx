@@ -346,27 +346,28 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
   }, [isSuperAdmin, activeCompany, allCompanies]);
 
   // STRICT TENANT ISOLATION:
-  // Clients only see leads from their tenant. Super admin sees leads.
+  // Clients only see leads from their tenant. Super admin in client view sees ONLY that company's leads.
   const leads = useMemo(() => {
     if (!isSuperAdmin && currentUser.tenant_id) {
       return allLeads.filter((l) => l.company_id === currentUser.tenant_id);
     }
     if (environmentMode === 'client' && activeCompany.id) {
-      return allLeads.filter(
-        (l) => l.company_id === activeCompany.id || !l.company_id || l.company_id === 'comp_pedagogicos'
-      );
+      return allLeads.filter((l) => l.company_id === activeCompany.id);
     }
     return allLeads;
   }, [isSuperAdmin, currentUser.tenant_id, allLeads, environmentMode, activeCompany.id]);
 
   // STRICT TENANT ISOLATION:
-  // Clients only see coworkers from their own tenant.
+  // Clients and super admins in client view only see team members of the active company.
   const users = useMemo(() => {
+    if (environmentMode === 'client' && activeCompany.id) {
+      return allUsers.filter((u) => u.company_id === activeCompany.id);
+    }
     if (!isSuperAdmin && currentUser.tenant_id) {
       return allUsers.filter((u) => u.company_id === currentUser.tenant_id);
     }
     return allUsers;
-  }, [isSuperAdmin, currentUser.tenant_id, allUsers]);
+  }, [isSuperAdmin, currentUser.tenant_id, allUsers, environmentMode, activeCompany.id]);
 
   // WhatsApp & Meta for active company (Starts clean and disconnected unless explicit credentials exist)
   const whatsappInstance = tenantEvolutionConfigs[activeCompany.id] || {
@@ -390,12 +391,97 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     pixel_id: '',
     access_token: '',
     page_id: '',
-    graph_api_version: 'v20.0',
+    graph_api_version: 'v25.0',
     last_conversion_sent_at: 'Nenhuma conversão enviada',
     is_active: false,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',
   };
+
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Dynamically calculate isolated dashboard metrics for the current company's leads
+  const computedDashboardMetrics: DashboardMetrics = useMemo(() => {
+    const totalLeads = leads.length;
+    const wonLeads = leads.filter((l) => l.stage_id === 'stage_5' || l.purchase_sent);
+    const conversionsCount = wonLeads.length;
+    const revenueTotal = wonLeads.reduce((acc, l) => acc + (l.sale_amount || 0), 0);
+    const averageTicket = conversionsCount > 0 ? Number((revenueTotal / conversionsCount).toFixed(2)) : 0;
+    const conversionRate = totalLeads > 0 ? Number(((conversionsCount / totalLeads) * 100).toFixed(1)) : 0;
+
+    let leadsToday = 0;
+    if (isMounted) {
+      try {
+        const todayStr = new Date().toDateString();
+        leadsToday = leads.filter((l) => {
+          try {
+            return new Date(l.created_at).toDateString() === todayStr;
+          } catch {
+            return false;
+          }
+        }).length;
+      } catch {}
+    }
+
+    return {
+      leadsToday,
+      leadsMonth: totalLeads,
+      conversionsCount,
+      revenueTotal,
+      averageTicket,
+      conversionRate,
+      estimatedROI: revenueTotal > 0 ? Number((revenueTotal / (totalLeads * 5 || 1)).toFixed(1)) : 0,
+      leadsByDay: [
+        { date: 'Seg', leads: Math.min(leads.length, 2), sales: Math.min(conversionsCount, 1) },
+        { date: 'Ter', leads: Math.min(leads.length, 4), sales: Math.min(conversionsCount, 2) },
+        { date: 'Qua', leads: Math.min(leads.length, 3), sales: Math.min(conversionsCount, 1) },
+        { date: 'Qui', leads: Math.min(leads.length, 5), sales: Math.min(conversionsCount, 2) },
+        { date: 'Sex', leads: Math.min(leads.length, 4), sales: Math.min(conversionsCount, 1) },
+        { date: 'Hoje', leads: leadsToday, sales: conversionsCount },
+      ],
+      salesByDay: [
+        { date: 'Hoje', revenue: revenueTotal },
+      ],
+      topCampaigns: leads.filter((l) => l.campaign_name).slice(0, 3).map((l, i) => ({
+        id: `camp_${i}`,
+        name: l.campaign_name || 'Campanha Principal',
+        leads: 1,
+        sales: l.purchase_sent ? 1 : 0,
+        revenue: l.sale_amount || 0,
+        conversionRate: l.purchase_sent ? 100 : 0,
+      })),
+      topAds: leads.filter((l) => l.ad_name).slice(0, 3).map((l, i) => ({
+        id: `ad_${i}`,
+        name: l.ad_name || 'Anúncio 01',
+        campaign: l.campaign_name || 'Geral',
+        revenue: l.sale_amount || 0,
+        sales: l.purchase_sent ? 1 : 0,
+      })),
+    };
+  }, [leads]);
+
+  // Isolate conversations per company leads
+  const filteredConversations = useMemo(() => {
+    const validLeadIds = new Set(leads.map((l) => l.id));
+    const result: Record<string, Message[]> = {};
+    for (const [leadId, msgs] of Object.entries(conversations)) {
+      if (validLeadIds.has(leadId)) {
+        result[leadId] = msgs;
+      }
+    }
+    return result;
+  }, [leads, conversations]);
+
+  // Isolate meta logs per company
+  const filteredMetaLogs = useMemo(() => {
+    if (environmentMode === 'client' && activeCompany.id) {
+      return metaLogs.filter((log) => log.company_id === activeCompany.id);
+    }
+    return metaLogs;
+  }, [metaLogs, environmentMode, activeCompany.id]);
 
   // Client-Safe Integration Status
   const clientIntegrationStatus: ClientIntegrationStatus = {
@@ -452,25 +538,28 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
     async (triggerEvolutionSync = true) => {
       try {
         setIsSyncingLeads(true);
-        const activeInst = tenantEvolutionConfigs[activeCompany.id]?.instance_name || 'Carlos1';
-        const companyId = activeCompany.id || 'comp_pedagogicos';
-        const url = `/api/leads?company_id=${companyId}&instance=${activeInst}${
-          triggerEvolutionSync ? '&sync=true' : ''
-        }`;
+        const instConfig = tenantEvolutionConfigs[activeCompany.id];
+        const isConnected = Boolean(instConfig && instConfig.status === 'connected' && instConfig.api_key);
+        const activeInst = isConnected ? (instConfig?.instance_name || '') : '';
+        const companyId = activeCompany.id;
+        if (!companyId) return;
+
+        const shouldSync = triggerEvolutionSync && isConnected && Boolean(activeInst);
+        const url = `/api/leads?company_id=${companyId}${shouldSync ? `&instance=${activeInst}&sync=true` : ''}`;
         const res = await fetch(url);
         if (!res.ok) return;
         const data = await res.json();
-        if (data.leads && Array.isArray(data.leads) && data.leads.length > 0) {
+        if (data.leads && Array.isArray(data.leads)) {
           setAllLeads((prev) => {
             const merged = [...prev];
             for (const sLead of data.leads) {
               const idx = merged.findIndex(
-                (l) => l.id === sLead.id || (sLead.phone && l.phone === sLead.phone)
+                (l) => l.id === sLead.id || (sLead.phone && l.phone === sLead.phone && l.company_id === sLead.company_id)
               );
               const leadFormatted: Lead = {
                 ...sLead,
                 stage_id: (!sLead.stage_id || sLead.stage_id === 'stage_new') ? 'stage_1' : sLead.stage_id,
-                company_id: sLead.company_id || activeCompany.id || 'comp_pedagogicos',
+                company_id: sLead.company_id || activeCompany.id,
               };
               if (idx >= 0) {
                 const existing = merged[idx];
@@ -594,13 +683,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       tenant_id: companyId,
       instance_name: subdomain,
       api_url: 'https://prospeccao-evolution01.pesd8y.easypanel.host',
-      api_key: 'X9mK2vQ7LpR8aNc4HsT1yWf6BgZe3JuD',
+      api_key: '',
       status: 'disconnected',
-      phone_number: data.phone.replace(/\D/g, ''),
+      phone_number: '',
       profile_name: data.trade_name || data.name,
-      webhook_url: 'https://crm.rcmarketing.com.br/api/webhooks/evolution',
-      last_sync_at: 'Recém criada',
-      is_active: true,
+      webhook_url: 'https://crm.carloscalio.tech/api/webhooks/evolution',
+      last_sync_at: 'Aguardando conexão',
+      is_active: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -609,11 +698,13 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       id: `meta_${subdomain}`,
       company_id: companyId,
       tenant_id: companyId,
-      pixel_id: `pixel_${Math.floor(100000000000000 + Math.random() * 900000000000000)}`,
-      dataset_id: `dataset_${subdomain}`,
-      access_token: `EAAG9_PERMANENT_TOKEN_${subdomain.toUpperCase()}`,
-      graph_api_version: 'v20.0',
-      is_active: true,
+      pixel_id: '',
+      dataset_id: '',
+      access_token: '',
+      page_id: '',
+      graph_api_version: 'v25.0',
+      last_conversion_sent_at: 'Nenhuma conversão enviada',
+      is_active: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -1141,9 +1232,9 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         tags,
         whatsappInstance,
         metaIntegration,
-        dashboardMetrics,
-        conversations,
-        metaLogs,
+        dashboardMetrics: computedDashboardMetrics,
+        conversations: filteredConversations,
+        metaLogs: filteredMetaLogs,
         selectedLead,
         isSaleModalOpen,
         pendingWonLead,

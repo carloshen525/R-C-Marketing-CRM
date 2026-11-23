@@ -9,11 +9,14 @@ export async function GET(req: NextRequest) {
     const instance = searchParams.get('instance') || 'Carlos1';
     const companyId = searchParams.get('company_id') || 'comp_pedagogicos';
 
-    if (sync) {
+    if (sync && instance && companyId) {
       await syncEvolutionRecentMessages(instance, companyId);
     }
 
-    const leads = getStoredLeads();
+    let leads = getStoredLeads();
+    if (companyId) {
+      leads = leads.filter((l) => l.company_id === companyId);
+    }
     const messages = getStoredMessages();
 
     return NextResponse.json({
