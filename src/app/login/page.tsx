@@ -15,49 +15,17 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  ShieldCheck,
 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const { setCurrentUserDirectly, allUsers, setEnvironmentMode } = useCRM();
 
-  const [email, setEmail] = useState('carloshenrq1245@gmail.com');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleQuickMasterLogin = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      const masterUser =
-        allUsers.find((u) => u.role === 'super_admin' || u.role === 'master_admin') ||
-        allUsers[0];
-
-      if (masterUser) {
-        setCurrentUserDirectly(masterUser);
-        setEnvironmentMode('master');
-      }
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('rc_current_user', JSON.stringify(masterUser));
-        document.cookie = 'rc_user_role=super_admin; path=/; max-age=86400; SameSite=Lax';
-      }
-
-      await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'super_admin', tenantId: null }),
-      });
-
-      window.location.href = '/admin/empresas';
-    } catch (e: any) {
-      setErrorMessage(e?.message || 'Erro ao entrar como Master Admin');
-      setIsLoading(false);
-    }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,24 +156,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* 1-Click Fast Master Admin Access */}
-          <button
-            type="button"
-            onClick={handleQuickMasterLogin}
-            disabled={isLoading}
-            className="w-full mb-6 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2.5 shadow-lg shadow-purple-600/30 transition-all border border-purple-400/30 cursor-pointer disabled:opacity-50"
-          >
-            <ShieldCheck className="w-4 h-4 text-purple-200" />
-            <span>Entrar Direto como Master Admin (Carlos Henrique)</span>
-          </button>
-
-          <div className="relative mb-6 flex items-center justify-center">
-            <div className="border-t border-zinc-800 w-full" />
-            <span className="bg-zinc-900 px-3 text-[11px] text-zinc-500 uppercase font-bold tracking-wider absolute">
-              ou faça login manual
-            </span>
-          </div>
-
           <form className="space-y-5" onSubmit={handleLogin}>
             <div>
               <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-1.5">
@@ -220,7 +170,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="carloshenrq1245@gmail.com"
+                  placeholder="seu-email@dominio.com"
                   className="block w-full pl-10 pr-3 py-3 border border-zinc-700/80 rounded-2xl bg-zinc-950/60 text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 />
               </div>
