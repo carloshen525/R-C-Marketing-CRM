@@ -86,20 +86,17 @@ export function Header() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3">
-          {environmentMode !== 'master' && (
+          {isSuperAdmin && environmentMode === 'client' && (
             <button
               onClick={() => {
-                if (typeof window !== 'undefined') {
-                  document.cookie = 'rc_user_role=super_admin; path=/; max-age=86400; SameSite=Lax';
-                }
                 setEnvironmentMode('master');
                 window.location.href = '/admin/empresas';
               }}
               className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-purple-600/30 transition-all cursor-pointer"
-              title="Acessar Painel Master de Gestão SaaS"
+              title="Voltar ao Painel Master"
             >
-              <Lock className="w-3.5 h-3.5" />
-              Painel Master
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Voltar ao Master
             </button>
           )}
 

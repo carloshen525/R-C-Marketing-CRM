@@ -76,35 +76,49 @@ export default function LoginPage() {
         }
       }
 
-      // 2. Local / In-memory user directory fallback
-      let foundUser = allUsers.find(
+      // 2. Fetch latest server users to ensure cross-device client authentication
+      let candidateUsers = [...allUsers];
+      try {
+        const usersRes = await fetch('/api/auth/users');
+        if (usersRes.ok) {
+          const uData = await usersRes.json();
+          if (uData.users && Array.isArray(uData.users)) {
+            candidateUsers = uData.users;
+          }
+        }
+      } catch (e) {}
+
+      let foundUser = candidateUsers.find(
         (u) => u.email.toLowerCase() === cleanEmail
       );
 
-      // Auto-fallback: If Carlos or Admin email alias
-      if (!foundUser && (cleanEmail.includes('carlos') || cleanEmail.includes('admin') || cleanEmail.includes('calio'))) {
-        foundUser = allUsers.find((u) => u.role === 'super_admin' || u.role === 'master_admin') || allUsers[0];
+      // Only Carlos's official master email can fallback to Super Admin
+      if (!foundUser && cleanEmail === 'carloshenrq1245@gmail.com') {
+        foundUser = candidateUsers.find((u) => u.role === 'super_admin') || allUsers[0];
       }
 
       if (!foundUser) {
         throw new Error('E-mail não cadastrado na plataforma.');
       }
 
-      // Validate mock credentials
+      // Validate credentials
       if (!password || password.length < 6) {
         throw new Error('A senha deve ter pelo menos 6 caracteres.');
       }
 
       // Update CRM context user
       setCurrentUserDirectly(foundUser);
-      if (foundUser.role === 'super_admin' || foundUser.role === 'master_admin') {
-        setEnvironmentMode('master');
-      }
+      const isMaster = foundUser.role === 'super_admin' || foundUser.role === 'master_admin';
+      setEnvironmentMode(isMaster ? 'master' : 'client');
 
       // Persist in localStorage and Cookie directly in browser
       if (typeof window !== 'undefined') {
         localStorage.setItem('rc_current_user', JSON.stringify(foundUser));
+        localStorage.setItem('rc_env_mode', isMaster ? 'master' : 'client');
         document.cookie = `rc_user_role=${foundUser.role}; path=/; max-age=86400; SameSite=Lax`;
+        if (foundUser.tenant_id) {
+          document.cookie = `rc_tenant_id=${foundUser.tenant_id}; path=/; max-age=86400; SameSite=Lax`;
+        }
       }
 
       // Set cookie for middleware
@@ -114,11 +128,13 @@ export default function LoginPage() {
         body: JSON.stringify({ role: foundUser.role, tenantId: foundUser.tenant_id }),
       });
 
-      // Role based redirect with full page navigation to ensure cookies apply
-      if (foundUser.role === 'super_admin' || foundUser.role === 'master_admin') {
+      // Role based redirect:
+      // Super admin -> /admin/empresas
+      // Client -> /crm
+      if (isMaster) {
         window.location.href = '/admin/empresas';
       } else {
-        window.location.href = '/dashboard';
+        window.location.href = '/crm';
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'Erro ao realizar login. Tente novamente.');

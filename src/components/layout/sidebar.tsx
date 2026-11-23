@@ -192,7 +192,7 @@ export function Sidebar() {
           );
         })}
 
-        {!isMasterView && (
+        {isSuperAdmin && !isMasterView && (
           <div className="pt-2 mt-2 border-t border-zinc-800/60">
             <button
               onClick={() => {
