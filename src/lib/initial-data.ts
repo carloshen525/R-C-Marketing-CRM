@@ -69,7 +69,7 @@ export const initialWhatsAppInstances: Record<string, WhatsAppInstance> = {
     phone_number: '556282002147',
     status: 'connected',
     is_active: true,
-    webhook_url: 'https://prospeccao-recmarketingcrm.pesd8y.easypanel.host/api/webhooks/evolution',
+    webhook_url: 'https://crm.carloscalio.tech/api/webhooks/evolution',
     created_at: T_NOW,
     updated_at: T_NOW,
   },
