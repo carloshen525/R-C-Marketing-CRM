@@ -319,7 +319,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       trade_name: 'R&C Marketing CRM',
       slug: 'rcmarketing',
       subdomain: 'app',
-      full_subdomain: 'app.rcmarketingcrm.com.br',
+      full_subdomain: 'app.carloscalio.tech',
       owner_name: 'Carlos Henrique',
       email: 'carloshenrq1245@gmail.com',
       phone: '+55 62 8200-2147',
@@ -641,7 +641,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       ? generateSubdomain(data.custom_subdomain)
       : generateSubdomain(data.name);
 
-    const full_subdomain = `${subdomain}.rcmarketingcrm.com.br`;
+    const full_subdomain = `${subdomain}.carloscalio.tech`;
     const companyId = `comp_${subdomain}_${Date.now()}`;
     const tempPassword = data.custom_password && data.custom_password.trim().length >= 6
       ? data.custom_password.trim()

@@ -21,7 +21,7 @@ export default function AdminConfiguracoesPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const [platformName, setPlatformName] = useState('R&C Marketing CRM');
-  const [rootDomain, setRootDomain] = useState('rcmarketingcrm.com.br');
+  const [rootDomain, setRootDomain] = useState('carloscalio.tech');
   const [adminSubdomain, setAdminSubdomain] = useState('admin');
   const [evolutionDefaultUrl, setEvolutionDefaultUrl] = useState('https://prospeccao-evolution01.pesd8y.easypanel.host');
   const [metaGraphVersion, setMetaGraphVersion] = useState('v20.0');

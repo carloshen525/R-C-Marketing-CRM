@@ -14,7 +14,7 @@ export function middleware(req: NextRequest) {
   let currentSubdomain: string | null = null;
   const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
 
-  if (!isLocalhost && hostname.includes('.rcmarketingcrm.com.br')) {
+  if (!isLocalhost && (hostname.includes('.carloscalio.tech') || hostname.includes('.rcmarketingcrm.com.br'))) {
     const parts = hostname.split('.');
     if (parts.length >= 3) {
       currentSubdomain = parts[0].toLowerCase();

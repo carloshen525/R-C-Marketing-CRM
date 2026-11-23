@@ -171,7 +171,7 @@ export default function AdminUsuariosPage() {
                             {company?.trade_name || company?.name || 'Empresa Vinculada'}
                           </p>
                           <p className="text-[10px] font-mono text-zinc-400">
-                            {company?.subdomain}.rcmarketingcrm.com.br
+                            {company?.subdomain}.carloscalio.tech
                           </p>
                         </div>
                       )}

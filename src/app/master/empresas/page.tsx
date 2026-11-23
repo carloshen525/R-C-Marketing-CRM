@@ -594,7 +594,7 @@ export default function MasterEmpresasPage() {
                         className="px-3 py-2 rounded-l-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-mono font-bold text-zinc-900 dark:text-zinc-100 flex-1"
                       />
                       <span className="px-3 py-2 rounded-r-xl border-y border-r border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-700 text-zinc-500 text-xs font-mono">
-                        .rcmarketingcrm.com.br
+                        .carloscalio.tech
                       </span>
                     </div>
 
