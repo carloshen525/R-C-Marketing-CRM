@@ -317,9 +317,21 @@ export function LeadDrawer() {
                       </span>
                     </div>
                     <div>
+                      <span className="text-zinc-500 block">Plataforma do Anúncio:</span>
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-200">
+                        {selectedLead.platform === 'facebook' ? 'Facebook Ads' : 'Instagram Ads'}
+                      </span>
+                    </div>
+                    <div>
                       <span className="text-zinc-500 block">Pixel ID:</span>
                       <span className="font-mono text-zinc-700 dark:text-zinc-300">
-                        {selectedLead.pixel_id || '891049281729381'}
+                        {selectedLead.pixel_id || '1838816967308658'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500 block">Page ID:</span>
+                      <span className="font-mono text-zinc-700 dark:text-zinc-300">
+                        {selectedLead.page_id || '560563063815546'}
                       </span>
                     </div>
                     <div className="col-span-2">
