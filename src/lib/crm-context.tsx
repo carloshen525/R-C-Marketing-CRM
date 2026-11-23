@@ -105,6 +105,7 @@ interface CRMContextType {
   addNewLead: (leadData: Partial<Lead>) => Promise<Lead>;
   updateWhatsAppStatus: (status: WhatsAppInstance['status']) => void;
   addStage: (name: string, color: string) => void;
+  deleteStage: (stageId: string) => void;
   syncWhatsAppLeads: () => Promise<void>;
   isSyncingLeads: boolean;
 }
@@ -1190,10 +1191,10 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
 
   const addStage = (name: string, color: string) => {
     const newStage: PipelineStage = {
-      id: `stage_${Date.now()}`,
+      id: `stage_custom_${Date.now()}`,
       company_id: activeCompany.id,
       tenant_id: activeCompany.id,
-      pipeline_id: 'pipe_01',
+      pipeline_id: 'default',
       name,
       color,
       order_index: stages.length,
@@ -1201,7 +1202,27 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
       is_lost: false,
       created_at: new Date().toISOString(),
     };
-    setStages((prev) => [...prev, newStage]);
+    setStages((prev) => {
+      // Keep "Venda Concluída" always at the end
+      const wonIndex = prev.findIndex((s) => s.is_won || s.id === 'stage_5');
+      if (wonIndex >= 0) {
+        const copy = [...prev];
+        copy.splice(wonIndex, 0, newStage);
+        return copy.map((st, i) => ({ ...st, order_index: i + 1 }));
+      }
+      return [...prev, newStage];
+    });
+  };
+
+  const deleteStage = (stageId: string) => {
+    if (stageId === 'stage_1' || stageId === 'stage_5') {
+      alert('As etapas "Novos Leads" e "Venda Concluída" são padrões do traqueamento Meta Ads e não podem ser excluídas.');
+      return;
+    }
+    setAllLeads((prev) =>
+      prev.map((l) => (l.stage_id === stageId ? { ...l, stage_id: 'stage_1' } : l))
+    );
+    setStages((prev) => prev.filter((s) => s.id !== stageId));
   };
 
   return (
@@ -1249,6 +1270,7 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         addNewLead,
         updateWhatsAppStatus,
         addStage,
+        deleteStage,
         syncWhatsAppLeads,
         isSyncingLeads,
       }}

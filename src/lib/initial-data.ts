@@ -92,11 +92,7 @@ export const initialMetaIntegrations: Record<string, MetaIntegration> = {
 
 export const defaultPipelineStages: PipelineStage[] = [
   { id: 'stage_1', company_id: '', pipeline_id: 'default', name: 'Novos Leads', color: '#3b82f6', order_index: 1, is_won: false, is_lost: false, created_at: T_NOW },
-  { id: 'stage_2', company_id: '', pipeline_id: 'default', name: 'Em Atendimento', color: '#eab308', order_index: 2, is_won: false, is_lost: false, created_at: T_NOW },
-  { id: 'stage_3', company_id: '', pipeline_id: 'default', name: 'Negociação', color: '#a855f7', order_index: 3, is_won: false, is_lost: false, created_at: T_NOW },
-  { id: 'stage_4', company_id: '', pipeline_id: 'default', name: 'Aguardando Pagamento', color: '#f97316', order_index: 4, is_won: false, is_lost: false, created_at: T_NOW },
-  { id: 'stage_5', company_id: '', pipeline_id: 'default', name: 'Venda Concluída', color: '#10b981', order_index: 5, is_won: true, is_lost: false, created_at: T_NOW },
-  { id: 'stage_6', company_id: '', pipeline_id: 'default', name: 'Perdido', color: '#ef4444', order_index: 6, is_won: false, is_lost: true, created_at: T_NOW },
+  { id: 'stage_5', company_id: '', pipeline_id: 'default', name: 'Venda Concluída', color: '#10b981', order_index: 2, is_won: true, is_lost: false, created_at: T_NOW },
 ];
 
 export const defaultTags: Tag[] = [

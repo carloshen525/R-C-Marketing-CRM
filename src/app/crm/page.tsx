@@ -19,6 +19,7 @@ import {
   ChevronRight,
   MoveRight,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { FacebookIcon, InstagramIcon } from '@/components/ui/icons';
 import { LeadDrawer } from '@/components/crm/lead-drawer';
@@ -32,6 +33,7 @@ export default function CRMKanbanPage() {
     moveLeadStage,
     setSelectedLead,
     addStage,
+    deleteStage,
     syncWhatsAppLeads,
     isSyncingLeads,
     updateLead,
@@ -252,26 +254,56 @@ export default function CRMKanbanPage() {
               }`}
             >
               {/* Column Header */}
-              <div className="p-3.5 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
+              <div className="p-3.5 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span
-                    className="w-3 h-3 rounded-full"
+                    className="w-3 h-3 rounded-full shrink-0"
                     style={{ backgroundColor: stage.color }}
                   />
-                  <h3 className="text-xs font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
+                  <h3 className="text-xs font-extrabold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider truncate">
                     {stage.name}
                   </h3>
-                  <span className="text-[11px] font-bold px-2 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                  <span className="text-[11px] font-bold px-2 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shrink-0">
                     {stageLeads.length}
                   </span>
                 </div>
 
-                {stage.is_won && (
-                  <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Ganho
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {stage.id === 'stage_1' && (
+                    <span
+                      title="Etapa de Entrada: Dispara LeadSubmitted na Meta CAPI"
+                      className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/60 px-2 py-0.5 rounded-full flex items-center gap-1 border border-blue-200 dark:border-blue-900"
+                    >
+                      <ShieldCheck className="w-3 h-3 text-blue-500" />
+                      LeadSubmitted
+                    </span>
+                  )}
+
+                  {stage.is_won && (
+                    <span
+                      title="Etapa de Conversão: Dispara Purchase na Meta CAPI"
+                      className="text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200 dark:border-emerald-900"
+                    >
+                      <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                      Purchase
+                    </span>
+                  )}
+
+                  {/* Allow deleting custom stages only */}
+                  {stage.id !== 'stage_1' && stage.id !== 'stage_5' && (
+                    <button
+                      onClick={() => {
+                        if (confirm(`Excluir a etapa "${stage.name}"? Os leads serão movidos para Novos Leads.`)) {
+                          deleteStage(stage.id);
+                        }
+                      }}
+                      className="p-1 text-zinc-400 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors"
+                      title="Excluir etapa personalizada"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Revenue Subheader if any */}
