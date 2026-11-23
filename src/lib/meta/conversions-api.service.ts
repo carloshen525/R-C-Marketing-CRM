@@ -1,9 +1,4 @@
-import {
-  sha256,
-  normalizeAndHashPhone,
-  normalizeAndHashName,
-  normalizeAndHashEmail,
-} from './crypto-utils';
+import { sha256 } from './tracking-utils';
 import { Lead, MetaIntegration } from '../types';
 
 export interface CapiSendResult {
@@ -18,7 +13,7 @@ export interface CapiSendResult {
 }
 
 export class MetaConversionsService {
-  private static readonly GRAPH_API_VERSION = 'v20.0';
+  private static readonly GRAPH_API_VERSION = 'v25.0';
   private static readonly GRAPH_BASE_URL = 'https://graph.facebook.com';
   private static pixelCache: Record<string, string> = {};
 
@@ -43,7 +38,8 @@ export class MetaConversionsService {
             pixels.find(
               (p) =>
                 p.name.toLowerCase().includes('whatstracker') ||
-                p.name.toLowerCase().includes('whatsapp')
+                p.name.toLowerCase().includes('whatsapp') ||
+                p.name.toLowerCase().includes('saber mais')
             ) || pixels[0];
           if (match?.id) {
             this.pixelCache[accessToken] = match.id;
@@ -60,7 +56,7 @@ export class MetaConversionsService {
 
   /**
    * Sends the LeadSubmitted event to Meta Conversions API
-   * Requirement: Sent ONLY upon lead creation from CTWA, never on subsequent messages.
+   * Exactly reproduces the n8n "Enviar conversão de Lead para a META" node.
    */
   static async sendLeadSubmitted(
     lead: Lead,
@@ -76,44 +72,41 @@ export class MetaConversionsService {
     }
 
     const eventTime = Math.floor(Date.now() / 1000);
-    const eventId = `lead_sub_${lead.id}`;
-    const { fn, ln } = normalizeAndHashName(lead.name);
-
-    const userData: Record<string, unknown> = {
-      ph: [normalizeAndHashPhone(lead.phone)],
-      ...(fn ? { fn: [fn] } : {}),
-      ...(ln ? { ln: [ln] } : {}),
-      ...(lead.email ? { em: [normalizeAndHashEmail(lead.email)] } : {}),
-      ctwa_clid: lead.ctwa_clid,
-    };
-
-    const customData: Record<string, unknown> = {
-      lead_type: 'whatsapp_click_to_chat',
-      campaign_name: lead.campaign_name || 'Desconhecida',
-      ad_name: lead.ad_name || 'Desconhecido',
-      channel: lead.platform || 'whatsapp',
-    };
+    const eventId = `lead_sub_${lead.phone || lead.id}`;
+    const cleanPhone = (lead.phone || '').replace(/\D/g, '');
+    const phoneHash = sha256(cleanPhone);
+    const pageId = lead.page_id || metaConfig?.page_id || '560563063815546';
 
     const payload: Record<string, unknown> = {
       data: [
         {
+          action_source: 'business_messaging',
           event_name: 'LeadSubmitted',
           event_time: eventTime,
-          event_id: eventId,
-          action_source: 'chat',
-          user_data: userData,
-          custom_data: customData,
+          messaging_channel: 'whatsapp',
+          user_data: {
+            ph: phoneHash,
+            ctwa_clid: lead.ctwa_clid,
+            page_id: pageId,
+          },
         },
       ],
       ...(metaConfig?.test_event_code ? { test_event_code: metaConfig.test_event_code } : {}),
     };
 
-    return this.dispatchToMeta(metaConfig?.pixel_id, metaConfig?.access_token, payload, eventId);
+    const targetPixel = lead.pixel_id || metaConfig?.pixel_id || '1838816967308658';
+    const effectiveToken =
+      metaConfig?.access_token ||
+      process.env.META_ACCESS_TOKEN ||
+      process.env.META_CAPI_ACCESS_TOKEN ||
+      'EAAjy7fZAjxjsBSVev7bxevLHPjUA4yhuuy9Hepi1XFjIu1R9OslsXMy1XKf53UdyCh4KiHQbKwGY8eeM9WVh11NY4FNP1ZBZABq0TKzamF6nbaejveNqPBD7ss8DLoawVZAoUaBKVMOqwa3EjsU6jr9O2G94MRXXan8iVpIxusvFZCZBdzSR0rYci3W73OtjFufwZDZD';
+
+    return this.dispatchToMeta(targetPixel, effectiveToken, payload, eventId);
   }
 
   /**
    * Sends the Purchase event to Meta Conversions API
-   * Requirement: Triggered when operator confirms sale in the Won stage modal.
+   * Exactly reproduces the n8n "envia dados de compra" node.
    */
   static async sendPurchase(
     lead: Lead,
@@ -137,43 +130,41 @@ export class MetaConversionsService {
     const eventTime = Math.floor(
       (saleData.saleDate ? new Date(saleData.saleDate).getTime() : Date.now()) / 1000
     );
-    const eventId = `purchase_${lead.id}_${eventTime}`;
-    const { fn, ln } = normalizeAndHashName(lead.name);
-
-    const userData: Record<string, unknown> = {
-      ph: [normalizeAndHashPhone(lead.phone)],
-      ...(fn ? { fn: [fn] } : {}),
-      ...(ln ? { ln: [ln] } : {}),
-      ...(lead.email ? { em: [normalizeAndHashEmail(lead.email)] } : {}),
-      ctwa_clid: lead.ctwa_clid,
-    };
-
-    const customData: Record<string, unknown> = {
-      currency: saleData.currency || 'BRL',
-      value: saleData.amount,
-      content_name: saleData.productName || 'Venda CRM',
-      content_type: 'product',
-      order_id: eventId,
-      campaign_name: lead.campaign_name,
-      ad_name: lead.ad_name,
-    };
+    const cleanPhone = (lead.phone || '').replace(/\D/g, '');
+    const phoneHash = sha256(cleanPhone);
+    const pageId = lead.page_id || metaConfig?.page_id || '560563063815546';
+    const amountVal = Number(saleData.amount || 0).toFixed(2);
 
     const payload: Record<string, unknown> = {
       data: [
         {
+          action_source: 'business_messaging',
           event_name: 'Purchase',
           event_time: eventTime,
-          event_id: eventId,
-          action_source: 'website',
-          event_source_url: 'https://wa.me/556282002147',
-          user_data: userData,
-          custom_data: customData,
+          messaging_channel: 'whatsapp',
+          event_id: cleanPhone || lead.id,
+          user_data: {
+            ph: phoneHash,
+            ctwa_clid: lead.ctwa_clid,
+            page_id: pageId,
+          },
+          custom_data: {
+            currency: saleData.currency || 'BRL',
+            value: amountVal,
+          },
         },
       ],
       ...(metaConfig?.test_event_code ? { test_event_code: metaConfig.test_event_code } : {}),
     };
 
-    return this.dispatchToMeta(metaConfig?.pixel_id, metaConfig?.access_token, payload, eventId);
+    const targetPixel = lead.pixel_id || metaConfig?.pixel_id || '1838816967308658';
+    const effectiveToken =
+      metaConfig?.access_token ||
+      process.env.META_ACCESS_TOKEN ||
+      process.env.META_CAPI_ACCESS_TOKEN ||
+      'EAAjy7fZAjxjsBSVev7bxevLHPjUA4yhuuy9Hepi1XFjIu1R9OslsXMy1XKf53UdyCh4KiHQbKwGY8eeM9WVh11NY4FNP1ZBZABq0TKzamF6nbaejveNqPBD7ss8DLoawVZAoUaBKVMOqwa3EjsU6jr9O2G94MRXXan8iVpIxusvFZCZBdzSR0rYci3W73OtjFufwZDZD';
+
+    return this.dispatchToMeta(targetPixel, effectiveToken, payload, cleanPhone || lead.id);
   }
 
   /**
@@ -185,8 +176,13 @@ export class MetaConversionsService {
     payload: Record<string, unknown> = {},
     eventId: string = ''
   ): Promise<CapiSendResult> {
-    const effectiveToken = accessToken || process.env.META_ACCESS_TOKEN || process.env.META_CAPI_ACCESS_TOKEN;
-    let targetPixel = pixelId || process.env.META_PIXEL_ID;
+    const effectiveToken =
+      accessToken ||
+      process.env.META_ACCESS_TOKEN ||
+      process.env.META_CAPI_ACCESS_TOKEN ||
+      'EAAjy7fZAjxjsBSVev7bxevLHPjUA4yhuuy9Hepi1XFjIu1R9OslsXMy1XKf53UdyCh4KiHQbKwGY8eeM9WVh11NY4FNP1ZBZABq0TKzamF6nbaejveNqPBD7ss8DLoawVZAoUaBKVMOqwa3EjsU6jr9O2G94MRXXan8iVpIxusvFZCZBdzSR0rYci3W73OtjFufwZDZD';
+
+    let targetPixel = pixelId || process.env.META_PIXEL_ID || '1838816967308658';
 
     // Auto-discover pixel if missing or placeholder and real token is present
     if ((!targetPixel || targetPixel.startsWith('pixel_')) && effectiveToken && effectiveToken.startsWith('EAA')) {
@@ -194,25 +190,6 @@ export class MetaConversionsService {
       if (discovered) {
         targetPixel = discovered;
       }
-    }
-
-    // If no real credentials are configured, return a simulated successful response with real payload
-    if (!targetPixel || !effectiveToken || effectiveToken.startsWith('demo_') || targetPixel.startsWith('demo_') || targetPixel.startsWith('pixel_')) {
-      console.log('[Meta CAPI] Running in Demo/Simulated mode. Payload:', JSON.stringify(payload, null, 2));
-      return {
-        success: true,
-        eventId,
-        responseId: `sim_fb_${Date.now()}`,
-        eventsReceived: 1,
-        fbtraceId: `tr_${Math.random().toString(36).substring(2, 10)}`,
-        payload,
-        responseData: {
-          events_received: 1,
-          messages: [],
-          fbtrace_id: `tr_${Math.random().toString(36).substring(2, 10)}`,
-          status: 'simulated_success',
-        },
-      };
     }
 
     try {
@@ -238,6 +215,7 @@ export class MetaConversionsService {
         };
       }
 
+      console.log(`[Meta CAPI] Event successfully sent to Pixel ${targetPixel}:`, data);
       return {
         success: true,
         eventId,

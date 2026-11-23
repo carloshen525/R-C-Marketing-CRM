@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Lead, Message } from '../types';
 import { MetaConversionsService } from '../meta/conversions-api.service';
+import { MetaGraphApiService } from '../meta/graph-api.service';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const LEADS_FILE = path.join(DATA_DIR, 'leads.json');
@@ -208,9 +209,27 @@ export async function syncEvolutionRecentMessages(
         contextInfo?.externalAdReply?.sourceApp ||
         (isFBAds ? 'instagram' : 'organic');
 
+      const sourceId =
+        contextInfo?.externalAdReply?.sourceID ||
+        contextInfo?.externalAdReply?.sourceId ||
+        contextInfo?.externalAdReply?.source_id;
+
+      let adDetails = null;
+      if (sourceId) {
+        try {
+          adDetails = await MetaGraphApiService.getAdDetails(sourceId);
+        } catch (e) {}
+      }
+
+      const campaignName = adDetails?.campaignName || '[Eng] [Jogo da Memória das Silabas] [10.11]';
+      const campaignId = adDetails?.campaignId || (isFBAds ? '120250535297470101' : undefined);
+      const adsetName = adDetails?.adsetName || (isFBAds ? '[25-40] [Mulheres]' : undefined);
+      const adsetId = adDetails?.adsetId;
       const adTitle = contextInfo?.externalAdReply?.title;
-      const adName = adTitle ? `${adTitle} - Jogo da Memória` : '01 - Jogo da Memória das Sílabas';
-      const campaignName = '[Eng] [Jogo da Memória das Silabas] [10.11]';
+      const adName = adDetails?.adName || (adTitle ? `${adTitle} - Jogo da Memória` : '01 - Jogo da Memória das Sílabas');
+      const adId = adDetails?.adId || sourceId;
+      const pixelId = adDetails?.pixelId || (isFBAds ? '1838816967308658' : undefined);
+      const pageId = adDetails?.pageId || (isFBAds ? '560563063815546' : undefined);
 
       const msgTime = lm?.messageTimestamp
         ? new Date(lm.messageTimestamp * 1000).toISOString()
@@ -229,10 +248,16 @@ export async function syncEvolutionRecentMessages(
           phone: rawPhone,
           is_organic: !isFBAds,
           ctwa_clid: ctwaPayload || undefined,
+          source_id: sourceId || undefined,
           platform: isFBAds ? (platform === 'facebook' ? 'facebook' : 'instagram') : 'organic',
-          campaign_id: isFBAds ? '120250535297470101' : undefined,
+          campaign_id: isFBAds ? campaignId : undefined,
           campaign_name: isFBAds ? campaignName : undefined,
+          adset_id: adsetId,
+          adset_name: adsetName,
+          ad_id: adId,
           ad_name: isFBAds ? adName : undefined,
+          pixel_id: pixelId,
+          page_id: pageId,
           product_name: 'Jogo da Memória das Sílabas',
           lead_submitted_sent: false,
           sale_amount: 0,
@@ -275,9 +300,16 @@ export async function syncEvolutionRecentMessages(
         // Only attach CTWA if genuinely discovered from ad payload and not already set
         if (!existing.ctwa_clid && ctwaPayload && !existing.is_organic) {
           existing.ctwa_clid = ctwaPayload;
+          existing.source_id = sourceId || existing.source_id;
+          existing.pixel_id = pixelId || existing.pixel_id;
+          existing.page_id = pageId || existing.page_id;
           existing.is_organic = false;
           existing.platform = platform === 'facebook' ? 'facebook' : 'instagram';
+          existing.campaign_id = campaignId || existing.campaign_id;
           existing.campaign_name = campaignName;
+          existing.adset_id = adsetId || existing.adset_id;
+          existing.adset_name = adsetName || existing.adset_name;
+          existing.ad_id = adId || existing.ad_id;
           existing.ad_name = adName;
           updated = true;
         }

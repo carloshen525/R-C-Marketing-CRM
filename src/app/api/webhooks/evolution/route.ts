@@ -3,124 +3,82 @@ import { MetaConversionsService } from '@/lib/meta/conversions-api.service';
 import { MetaGraphApiService } from '@/lib/meta/graph-api.service';
 import { getStoredLeads, saveLead, saveMessage } from '@/lib/server/leads-storage';
 import { Lead, Message } from '@/lib/types';
+import { mapEvolutionWebhook, extractMoneyValues } from '@/lib/meta/tracking-utils';
 
 /**
- * Evolution API Webhook Handler
- * Native processing - NO n8n required!
+ * Evolution API Webhook Handler - 100% Native Implementation of WhatsTracker Architecture
+ * 
+ * Supports both Evolution Go and Evolution API v1/v2 payloads.
+ * Features:
+ *  1. FLUXO DE LEAD (fromMe == false):
+ *     - Detects CTWA referral (ctwaClid, sourceID, sourceApp).
+ *     - Fetches Meta Graph API v25.0 to extract pixel_id, page_id, campaign, adset, and ad names.
+ *     - Creates or updates lead in database with full tracking specs.
+ *     - Hashes phone with SHA-256 and sends LeadSubmitted to Meta CAPI.
+ * 
+ *  2. FLUXO DE COMPRA (fromMe == true):
+ *     - Detects sale confirmations (e.g. 'Cadastro Realizado!', 'PIX recebido', or monetary amounts).
+ *     - Parses monetary value (e.g. R$ 5,00, 120.000,00).
+ *     - Looks up lead by phone or LID.
+ *     - Updates lead stage to Venda Concluída and sends Purchase event to Meta CAPI.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const event = body.event || body.type;
-    const instance = body.instance || 'Carlos1';
+    const event = body?.event || body?.type || 'Message';
+    const instance = body?.instanceName || body?.instance || 'Carlos1';
 
     console.log(`[Webhook Evolution] Received event: ${event} for instance: ${instance}`);
 
-    if (event === 'MESSAGES_UPSERT' || event === 'messages.upsert') {
-      const messageData = body.data?.message || body.data;
-      const key = body.data?.key || messageData?.key;
+    // Ignore connection update events cleanly
+    if (event === 'CONNECTION_UPDATE' || event === 'connection.update') {
+      const state = body.data?.state || body.data?.status;
+      return NextResponse.json({ status: 'connection_updated', state });
+    }
 
-      // Ignore messages sent by self or group messages
-      if (key?.fromMe || key?.remoteJid?.includes('@g.us')) {
-        return NextResponse.json({ status: 'ignored', reason: 'from_me_or_group' });
-      }
+    // Map incoming webhook payload using the unified extractor
+    const mapped = mapEvolutionWebhook(body);
 
-      // Handle WhatsApp LID privacy addressing: remoteJidAlt has real @s.whatsapp.net phone number
-      const remoteJidAlt = key?.remoteJidAlt;
-      const realJid =
-        remoteJidAlt && remoteJidAlt.includes('@s.whatsapp.net')
-          ? remoteJidAlt
-          : key?.remoteJid || '';
+    if (!mapped.telefone || mapped.telefone.length < 8) {
+      return NextResponse.json({ status: 'ignored', reason: 'no_valid_phone' });
+    }
 
-      const rawPhone = realJid.split('@')[0].replace(/\D/g, '');
-      const pushName = body.data?.pushName || 'Novo Lead';
+    // Skip messages to/from own instance phone
+    if (mapped.telefone === '556282002147') {
+      return NextResponse.json({ status: 'ignored', reason: 'own_instance_phone' });
+    }
 
-      // Check Click-to-WhatsApp referral
-      // Evolution API forwards WhatsApp Baileys / Cloud referral object & contextInfo
-      const contextInfo =
-        body.data?.contextInfo ||
-        messageData?.extendedTextMessage?.contextInfo ||
-        messageData?.message?.extendedTextMessage?.contextInfo ||
-        body.data?.message?.extendedTextMessage?.contextInfo;
+    const existingLeads = getStoredLeads();
+    // Look up lead by phone or LID
+    let lead = existingLeads.find(
+      (l) =>
+        l.phone === mapped.telefone ||
+        (mapped.lid && l.lid === mapped.lid) ||
+        (l.id && l.id.includes(mapped.telefone))
+    );
 
-      const isFBAds =
-        contextInfo?.conversionSource === 'FB_Ads' ||
-        Boolean(contextInfo?.ctwaPayload) ||
-        Boolean(contextInfo?.conversionData) ||
-        Boolean(contextInfo?.externalAdReply);
+    const companyId = lead?.company_id || 'comp_pedagogicos';
+    const leadId = lead?.id || `lead_wa_${mapped.telefone}_${Date.now()}`;
 
-      const referral =
-        body.data?.referral ||
-        contextInfo?.externalAdReply ||
-        contextInfo?.referral ||
-        messageData?.referral ||
-        body.data?.message?.referral;
+    // =========================================================================
+    // BRANCH 1: FLUXO DE LEAD (Recebi a mensagem: fromme == false)
+    // =========================================================================
+    if (!mapped.fromme) {
+      const hasCtwa = Boolean(mapped.ctwaclid);
 
-      const ctwaClid =
-        contextInfo?.ctwaPayload ||
-        contextInfo?.conversionData ||
-        referral?.ctwaClid ||
-        referral?.ctwa_clid ||
-        referral?.referralParam;
-
-      const sourceId = referral?.sourceId || referral?.source_id || referral?.sourceUrl;
-      const adId = referral?.adId || referral?.ad_id || (sourceId && /^\d+$/.test(sourceId) ? sourceId : undefined);
-      const isOrganic = !ctwaClid && !isFBAds;
-
-      const messageContent =
-        body.data?.message?.conversation ||
-        messageData?.conversation ||
-        messageData?.extendedTextMessage?.text ||
-        'Mensagem recebida pelo WhatsApp';
-
-      let campaignName = isOrganic ? undefined : '[Eng] [Jogo da Memória das Silabas] [10.11]';
-      let adsetName = isOrganic ? undefined : '[25-40] [Mulheres]';
-      let adName = isOrganic
-        ? undefined
-        : referral?.title || referral?.headline || '01 - Jogo da Memória das Sílabas';
-
-      // Enrich with Meta Graph API if adId is available
-      if (adId) {
-        const adDetails = await MetaGraphApiService.getAdDetails(adId);
-        if (adDetails) {
-          if (adDetails.campaignName) campaignName = adDetails.campaignName;
-          if (adDetails.adsetName) adsetName = adDetails.adsetName;
-          if (adDetails.adName) adName = adDetails.adName;
-        }
-      }
-
-      // Check existing lead
-      const existingLeads = getStoredLeads();
-      const existing = existingLeads.find((l) => l.phone === rawPhone);
-      const companyId = existing?.company_id || 'comp_pedagogicos';
-      const leadId = existing?.id || `lead_wa_${rawPhone}_${Date.now()}`;
-
-      let metaResult = null;
-      let isNewLead = !existing;
-
-      const leadPayload: Lead = existing
-        ? {
-            ...existing,
-            last_interaction_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }
-        : {
+      // If no ctwa_clid exists: Stop ad flow, handle as organic
+      if (!hasCtwa) {
+        if (!lead) {
+          lead = {
             id: leadId,
             company_id: companyId,
             stage_id: 'stage_1',
-            name: pushName,
-            phone: rawPhone,
-            is_organic: isOrganic,
-            ctwa_clid: ctwaClid,
-            source_id: sourceId,
-            platform: isOrganic
-              ? 'organic'
-              : (sourceId?.includes('facebook') || referral?.sourceUrl?.includes('facebook'))
-              ? 'facebook'
-              : 'instagram',
-            campaign_name: campaignName,
-            adset_name: adsetName,
-            ad_name: adName,
+            name: mapped.rawPushName || `Lead ${mapped.telefone.slice(-4)}`,
+            phone: mapped.telefone,
+            lid: mapped.lid || undefined,
+            is_organic: true,
+            platform: 'organic',
+            product_name: 'Jogo da Memória das Sílabas',
             lead_submitted_sent: false,
             sale_amount: 0,
             currency: 'BRL',
@@ -132,59 +90,203 @@ export async function POST(req: NextRequest) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
+          saveLead(lead);
+        } else {
+          lead.last_interaction_at = new Date().toISOString();
+          if (mapped.lid && !lead.lid) lead.lid = mapped.lid;
+          saveLead(lead);
+        }
 
-      // If new CTWA lead, send LeadSubmitted event to Meta Conversions API
-      if (isNewLead && !isOrganic && ctwaClid) {
-        metaResult = await MetaConversionsService.sendLeadSubmitted(leadPayload);
+        // Save incoming message
+        saveIncomingMessage(lead.id, companyId, mapped.mensagem, body?.data?.key?.id);
+
+        return NextResponse.json({
+          status: 'processed',
+          flow: 'organic_lead',
+          phone: mapped.telefone,
+        });
+      }
+
+      // CTWA Clid is present! Query Meta Graph API v25.0 for Ad details & Tracking Specs
+      console.log(`[Webhook Evolution] CTWA Detected! Source ID: ${mapped.source_id}, Clid: ${mapped.ctwaclid?.substring(0, 20)}...`);
+
+      let adDetails = null;
+      if (mapped.source_id) {
+        adDetails = await MetaGraphApiService.getAdDetails(mapped.source_id);
+      }
+
+      const campaignName = adDetails?.campaignName || '[Eng] [Jogo da Memória das Silabas] [10.11]';
+      const campaignId = adDetails?.campaignId || '120250535297470101';
+      const adsetName = adDetails?.adsetName || '[25-40] [Mulheres]';
+      const adsetId = adDetails?.adsetId;
+      const adName = adDetails?.adName || '01 - Jogo da Memória das Sílabas';
+      const adId = adDetails?.adId || mapped.source_id;
+      const pixelId = adDetails?.pixelId || '1838816967308658';
+      const pageId = adDetails?.pageId || '560563063815546';
+
+      let isNewLead = false;
+
+      if (!lead) {
+        // Cria lead novo no banco de dados
+        isNewLead = true;
+        lead = {
+          id: leadId,
+          company_id: companyId,
+          stage_id: 'stage_1',
+          name: mapped.rawPushName || `${mapped.first_name} ${mapped.last_name}`.trim(),
+          phone: mapped.telefone,
+          lid: mapped.lid || undefined,
+          is_organic: false,
+          ctwa_clid: mapped.ctwaclid,
+          source_id: mapped.source_id,
+          platform: mapped.plataforma === 'facebook' ? 'facebook' : 'instagram',
+          campaign_id: campaignId,
+          campaign_name: campaignName,
+          adset_id: adsetId,
+          adset_name: adsetName,
+          ad_id: adId,
+          ad_name: adName,
+          pixel_id: pixelId,
+          page_id: pageId,
+          product_name: 'Jogo da Memória das Sílabas',
+          lead_submitted_sent: false,
+          sale_amount: 0,
+          currency: 'BRL',
+          sale_status: 'none',
+          purchase_sent: false,
+          purchase_meta_status: 'none',
+          first_message_at: new Date().toISOString(),
+          last_interaction_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        // Atualiza Lead existente
+        lead.ctwa_clid = mapped.ctwaclid;
+        lead.source_id = mapped.source_id || lead.source_id;
+        lead.page_id = pageId || lead.page_id;
+        lead.pixel_id = pixelId || lead.pixel_id;
+        lead.campaign_id = campaignId || lead.campaign_id;
+        lead.campaign_name = campaignName || lead.campaign_name;
+        lead.adset_id = adsetId || lead.adset_id;
+        lead.adset_name = adsetName || lead.adset_name;
+        lead.ad_id = adId || lead.ad_id;
+        lead.ad_name = adName || lead.ad_name;
+        lead.platform = mapped.plataforma === 'facebook' ? 'facebook' : 'instagram';
+        lead.is_organic = false;
+        lead.lid = mapped.lid || lead.lid;
+        lead.last_interaction_at = new Date().toISOString();
+        lead.updated_at = new Date().toISOString();
+      }
+
+      // Enviar conversão de LeadSubmitted para a Meta CAPI
+      if (!lead.lead_submitted_sent) {
+        console.log(`[Webhook Evolution] Sending LeadSubmitted to Meta Pixel ${pixelId} for lead ${lead.phone}...`);
+        const metaResult = await MetaConversionsService.sendLeadSubmitted(lead);
         if (metaResult?.success) {
-          leadPayload.lead_submitted_sent = true;
-          leadPayload.lead_submitted_at = new Date().toISOString();
-          leadPayload.lead_submitted_response_id = metaResult.fbtraceId || metaResult.responseId;
+          lead.lead_submitted_sent = true;
+          lead.lead_submitted_at = new Date().toISOString();
+          lead.lead_submitted_response_id = metaResult.fbtraceId || metaResult.responseId;
         }
       }
 
-      // Save lead to persistent server storage
-      saveLead(leadPayload);
+      // Save lead
+      saveLead(lead);
 
-      // Save message to conversation store
-      const msgId = body.data?.key?.id || `msg_${Date.now()}`;
-      const newMsg: Message = {
-        id: msgId,
-        company_id: companyId,
-        conversation_id: `conv_${leadId}`,
-        lead_id: leadId,
-        sender_type: 'lead',
-        message_id: msgId,
-        content: messageContent,
-        status: 'delivered',
-        is_from_me: false,
-        created_at: new Date().toISOString(),
-      };
-      saveMessage(leadId, newMsg);
+      // Save incoming message
+      saveIncomingMessage(lead.id, companyId, mapped.mensagem, body?.data?.key?.id);
 
       return NextResponse.json({
         status: 'processed',
-        event,
+        flow: 'ctwa_lead_submitted',
         isNewLead,
-        lead: {
-          id: leadPayload.id,
-          phone: rawPhone,
-          name: pushName,
-          isOrganic,
-          ctwaClid: ctwaClid || null,
-          campaignName,
-          adName,
-          leadSubmittedSent: leadPayload.lead_submitted_sent,
-        },
+        leadId: lead.id,
+        phone: mapped.telefone,
+        campaign: campaignName,
+        pixelId,
+        pageId,
+        leadSubmittedSent: lead.lead_submitted_sent,
       });
     }
 
-    if (event === 'CONNECTION_UPDATE' || event === 'connection.update') {
-      const state = body.data?.state || body.data?.status;
-      return NextResponse.json({ status: 'connection_updated', state });
+    // =========================================================================
+    // BRANCH 2: FLUXO DE COMPRA (Enviei a mensagem: fromme == true)
+    // =========================================================================
+    // Save outgoing message to conversation
+    saveOutgoingMessage(leadId, companyId, mapped.mensagem, body?.data?.key?.id);
+
+    // Check if the message indicates a sale approval trigger
+    const msgText = mapped.mensagem || '';
+    const isApprovalTrigger =
+      msgText.includes('Cadastro Realizado!') ||
+      msgText.includes('compra aprovada') ||
+      msgText.includes('comprovante') ||
+      msgText.includes('enviei o material') ||
+      msgText.includes('Pix:');
+
+    const moneyValues = extractMoneyValues(msgText);
+    const hasMoney = moneyValues.length > 0;
+
+    // If it's a purchase confirmation and we have a tracked lead with ctwa_clid
+    if ((isApprovalTrigger || hasMoney) && lead && !lead.is_organic && lead.ctwa_clid) {
+      const totalAmount = hasMoney
+        ? moneyValues.reduce((a, b) => a + b, 0)
+        : lead.sale_amount > 0
+        ? lead.sale_amount
+        : 5.0;
+
+      console.log(`[Webhook Evolution] Outgoing Purchase Detected! Lead: ${lead.name} (${lead.phone}), Value: R$ ${totalAmount}`);
+
+      lead.stage_id = 'stage_5'; // Venda Concluída
+      lead.sale_amount = totalAmount;
+      lead.currency = 'BRL';
+      lead.sale_status = 'paid';
+      lead.sale_date = new Date().toISOString();
+      lead.last_interaction_at = new Date().toISOString();
+
+      // Ensure page_id and pixel_id are loaded if missing
+      if ((!lead.pixel_id || !lead.page_id) && lead.source_id) {
+        const adDetails = await MetaGraphApiService.getAdDetails(lead.source_id);
+        if (adDetails?.pixelId) lead.pixel_id = adDetails.pixelId;
+        if (adDetails?.pageId) lead.page_id = adDetails.pageId;
+      }
+
+      // Envia dados de compra para a Meta CAPI
+      if (!lead.purchase_sent) {
+        const purchaseResult = await MetaConversionsService.sendPurchase(lead, {
+          amount: totalAmount,
+          currency: 'BRL',
+          productName: lead.product_name || 'Jogo da Memória das Sílabas',
+          saleDate: lead.sale_date,
+        });
+
+        if (purchaseResult.success) {
+          lead.purchase_sent = true;
+          lead.purchase_sent_at = new Date().toISOString();
+          lead.purchase_meta_status = 'sent';
+          lead.purchase_response_id = purchaseResult.fbtraceId || purchaseResult.responseId;
+        } else {
+          lead.purchase_meta_status = 'failed';
+          lead.purchase_meta_error = purchaseResult.errorMessage;
+        }
+      }
+
+      saveLead(lead);
+
+      return NextResponse.json({
+        status: 'processed',
+        flow: 'purchase_recorded',
+        phone: mapped.telefone,
+        amount: totalAmount,
+        purchaseSent: lead.purchase_sent,
+      });
     }
 
-    return NextResponse.json({ status: 'acknowledged', event });
+    return NextResponse.json({
+      status: 'processed',
+      flow: 'outgoing_message_saved',
+      phone: mapped.telefone,
+    });
   } catch (error) {
     console.error('[Webhook Evolution] Error handling webhook:', error);
     return NextResponse.json(
@@ -192,4 +294,40 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function saveIncomingMessage(leadId: string, companyId: string, text: string, messageId?: string) {
+  if (!text) return;
+  const msgId = messageId || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const msg: Message = {
+    id: msgId,
+    company_id: companyId,
+    conversation_id: `conv_${leadId}`,
+    lead_id: leadId,
+    sender_type: 'lead',
+    message_id: msgId,
+    content: text,
+    status: 'delivered',
+    is_from_me: false,
+    created_at: new Date().toISOString(),
+  };
+  saveMessage(leadId, msg);
+}
+
+function saveOutgoingMessage(leadId: string, companyId: string, text: string, messageId?: string) {
+  if (!text) return;
+  const msgId = messageId || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const msg: Message = {
+    id: msgId,
+    company_id: companyId,
+    conversation_id: `conv_${leadId}`,
+    lead_id: leadId,
+    sender_type: 'agent',
+    message_id: msgId,
+    content: text,
+    status: 'delivered',
+    is_from_me: true,
+    created_at: new Date().toISOString(),
+  };
+  saveMessage(leadId, msg);
 }
