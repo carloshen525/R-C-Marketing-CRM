@@ -64,6 +64,7 @@ export function Sidebar() {
   const clientNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'CRM Funil', href: '/crm', icon: KanbanSquare },
+    { label: 'Contatos', href: '/contatos', icon: Users },
     { label: 'Status Integrações', href: '/integracoes', icon: PlugZap },
     { label: 'Relatórios', href: '/relatorios', icon: BarChart3 },
   ];
