@@ -3,7 +3,7 @@ import { MetaConversionsService } from '@/lib/meta/conversions-api.service';
 import { MetaGraphApiService } from '@/lib/meta/graph-api.service';
 import { getStoredLeads, saveLead, saveMessage } from '@/lib/server/leads-storage';
 import { resolveCompanyIdFromInstance } from '@/lib/server/tenant-resolver';
-import { initialMetaIntegrations } from '@/lib/initial-data';
+import { initialMetaIntegrations, initialWhatsAppInstances } from '@/lib/initial-data';
 import { Message } from '@/lib/types';
 import { mapEvolutionWebhook, extractMoneyValues } from '@/lib/meta/tracking-utils';
 
@@ -68,8 +68,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'ignored', reason: 'no_valid_phone' });
     }
 
-    // Skip messages to/from own instance phone
-    if (mapped.telefone === '556282002147') {
+    // Skip messages to/from the instance's own phone
+    const ownPhone = resolvedCompanyId
+      ? initialWhatsAppInstances[resolvedCompanyId]?.phone_number
+      : undefined;
+    if (mapped.telefone === '556282002147' || (ownPhone && mapped.telefone === ownPhone)) {
       return NextResponse.json({ status: 'ignored', reason: 'own_instance_phone' });
     }
 

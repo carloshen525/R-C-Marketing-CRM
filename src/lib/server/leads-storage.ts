@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Lead, Message } from '../types';
-import { initialMetaIntegrations } from '../initial-data';
+import { initialMetaIntegrations, initialWhatsAppInstances } from '../initial-data';
 import { MetaConversionsService } from '../meta/conversions-api.service';
 import { MetaGraphApiService } from '../meta/graph-api.service';
 
@@ -133,11 +133,16 @@ export async function syncEvolutionRecentMessages(
   const evolutionUrl = process.env.EVOLUTION_API_URL || 'https://prospeccao-evolution01.pesd8y.easypanel.host';
   const evolutionKey = process.env.EVOLUTION_API_KEY || 'X9mK2vQ7LpR8aNc4HsT1yWf6BgZe3JuD';
 
+  const configuredInstance = initialWhatsAppInstances[companyId];
+  // Prefer the instance configured for the tenant over a stale client value.
+  const targetInstance = configuredInstance?.instance_name || instanceName;
+  const ownPhone = configuredInstance?.phone_number;
+
   const addedLeads: Lead[] = [];
 
   try {
     // 1. Fetch from findChats to capture individual conversations
-    const chatsRes = await fetch(`${evolutionUrl}/chat/findChats/${instanceName}`, {
+    const chatsRes = await fetch(`${evolutionUrl}/chat/findChats/${targetInstance}`, {
       method: 'POST',
       headers: {
         apikey: evolutionKey,
@@ -180,7 +185,7 @@ export async function syncEvolutionRecentMessages(
           : '';
       const lid = lidJid ? lidJid.split('@')[0].replace(/\D/g, '') : undefined;
       if (!rawPhone || rawPhone.length < 8) continue;
-      if (rawPhone === '556282002147') continue; // Skip own instance phone
+      if (rawPhone === ownPhone || rawPhone === '556282002147') continue; // Skip own instance phone
 
       const pushName = lm?.pushName || chat.pushName || 'Lead WhatsApp';
       const messageContent =
