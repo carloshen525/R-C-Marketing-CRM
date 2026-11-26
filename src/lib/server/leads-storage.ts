@@ -3,7 +3,6 @@ import path from 'path';
 import { Lead, Message } from '../types';
 import { initialWhatsAppInstances } from '../initial-data';
 import { getCompanyMetaIntegration } from './meta-config';
-import { MetaConversionsService } from '../meta/conversions-api.service';
 import { MetaGraphApiService } from '../meta/graph-api.service';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -295,22 +294,9 @@ export async function syncEvolutionRecentMessages(
           updated_at: new Date().toISOString(),
         };
 
-        // Dispatch Meta CAPI LeadSubmitted only for tenants with a configured
-        // Meta integration and pixel. Otherwise the event would be attributed
-        // to the Pedagógicos pixel.
-        if (isFBAds && ctwaPayload && companyMeta?.access_token && newLead.pixel_id) {
-          try {
-            const capiRes = await MetaConversionsService.sendLeadSubmitted(newLead, companyMeta);
-            if (capiRes.success) {
-              newLead.lead_submitted_sent = true;
-              newLead.lead_submitted_at = new Date().toISOString();
-              newLead.lead_submitted_response_id = capiRes.fbtraceId || capiRes.responseId;
-            }
-          } catch (e) {
-            console.error('[LeadsStorage] Failed to send CAPI for synced lead:', e);
-          }
-        }
-
+        // Historical sync only backfills the CRM. Conversions are dispatched
+        // by the real-time webhook to avoid sending a burst of old events to
+        // Meta with the current timestamp.
         saveLead(newLead);
         addedLeads.push(newLead);
       } else {
