@@ -180,7 +180,19 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         const savedInstances = localStorage.getItem('rc_instances');
         if (savedInstances) {
           try {
-            setTenantEvolutionConfigs({ ...initialWhatsAppInstances, ...JSON.parse(savedInstances) });
+            const mergedInstances = { ...initialWhatsAppInstances, ...JSON.parse(savedInstances) };
+            // Built-in tenants must keep the canonical Evolution instance name.
+            // This fixes stale browser state such as the abandoned "amadeus"
+            // instance and prevents syncing the wrong WhatsApp number.
+            for (const [companyId, initialConfig] of Object.entries(initialWhatsAppInstances)) {
+              if (mergedInstances[companyId]) {
+                mergedInstances[companyId] = {
+                  ...mergedInstances[companyId],
+                  instance_name: initialConfig.instance_name,
+                };
+              }
+            }
+            setTenantEvolutionConfigs(mergedInstances);
           } catch (e) {}
         } else {
           setTenantEvolutionConfigs(initialWhatsAppInstances);
@@ -546,11 +558,14 @@ export function CRMProvider({ children }: { children: React.ReactNode }) {
         setIsSyncingLeads(true);
         const instConfig = tenantEvolutionConfigs[activeCompany.id];
         const isConnected = Boolean(instConfig && instConfig.status === 'connected' && instConfig.api_key);
-        const activeInst = isConnected ? (instConfig?.instance_name || '') : '';
+        const knownInstance = initialWhatsAppInstances[activeCompany.id]?.instance_name;
+        // Known tenants keep their canonical instance even if the browser has
+        // stale connection state; the server also enforces this mapping.
+        const activeInst = knownInstance || (isConnected ? (instConfig?.instance_name || '') : '');
         const companyId = activeCompany.id;
         if (!companyId) return;
 
-        const shouldSync = triggerEvolutionSync && isConnected && Boolean(activeInst);
+        const shouldSync = triggerEvolutionSync && Boolean(activeInst);
         const url = `/api/leads?company_id=${companyId}${shouldSync ? `&instance=${activeInst}&sync=true` : ''}`;
         const res = await fetch(url);
         if (!res.ok) return;
