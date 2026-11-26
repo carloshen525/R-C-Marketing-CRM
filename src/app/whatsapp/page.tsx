@@ -58,6 +58,7 @@ export default function WhatsAppPage() {
             instanceName: effectiveInstanceName,
             apiUrl: whatsappInstance.api_url,
             apiKey: whatsappInstance.api_key,
+            companyId: activeCompany.id,
           }),
         });
         const data = await res.json();
@@ -110,6 +111,7 @@ export default function WhatsAppPage() {
           instanceName: effectiveInstanceName,
           apiUrl: whatsappInstance.api_url,
           apiKey: whatsappInstance.api_key,
+          companyId: activeCompany.id,
         }),
       });
 
@@ -139,7 +141,11 @@ export default function WhatsAppPage() {
   };
 
   const handleCopyWebhook = () => {
-    navigator.clipboard.writeText(whatsappInstance.webhook_url || 'https://crm.rcmarketing.com.br/api/webhooks/evolution');
+    const baseUrl = whatsappInstance.webhook_url || 'https://crm.carloscalio.tech/api/webhooks/evolution';
+    const webhookUrl = baseUrl.includes('company_id=')
+      ? baseUrl
+      : `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}company_id=${encodeURIComponent(activeCompany.id)}`;
+    navigator.clipboard.writeText(webhookUrl);
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2000);
   };

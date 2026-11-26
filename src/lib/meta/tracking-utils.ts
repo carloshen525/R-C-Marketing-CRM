@@ -225,6 +225,8 @@ export function mapEvolutionWebhook(body: any): MappedWebhookData {
   const contextInfo =
     messageData?.extendedTextMessage?.contextInfo ||
     data?.SourceWebMsg?.message?.extendedTextMessage?.contextInfo ||
+    data?.SourceWebMsg?.message?.imageMessage?.contextInfo ||
+    data?.context?.Info?.ContextInfo ||
     data?.contextInfo ||
     messageData?.contextInfo;
 

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Lead, Message } from '../types';
+import { initialMetaIntegrations } from '../initial-data';
 import { MetaConversionsService } from '../meta/conversions-api.service';
 import { MetaGraphApiService } from '../meta/graph-api.service';
 
@@ -155,6 +156,8 @@ export async function syncEvolutionRecentMessages(
     const directChats = chatsList.filter((c) => c.remoteJid && !c.remoteJid.endsWith('@g.us'));
 
     const existingLeads = getStoredLeads();
+    const companyMeta = initialMetaIntegrations[companyId];
+    const isPedagogicos = companyId === 'comp_pedagogicos';
 
     for (const chat of directChats) {
       const lm = chat.lastMessage;
@@ -169,6 +172,13 @@ export async function syncEvolutionRecentMessages(
       if (jidToUse.includes('@g.us')) continue;
 
       const rawPhone = jidToUse.split('@')[0].replace(/\D/g, '');
+      const lidJid =
+        chat.remoteJid?.includes('@lid')
+          ? chat.remoteJid
+          : key?.remoteJid?.includes('@lid')
+          ? key.remoteJid
+          : '';
+      const lid = lidJid ? lidJid.split('@')[0].replace(/\D/g, '') : undefined;
       if (!rawPhone || rawPhone.length < 8) continue;
       if (rawPhone === '556282002147') continue; // Skip own instance phone
 
@@ -188,6 +198,7 @@ export async function syncEvolutionRecentMessages(
 
       const ctwaPayload =
         contextInfo?.externalAdReply?.ctwaClid ||
+        contextInfo?.externalAdReply?.ctwa_clid ||
         contextInfo?.ctwaPayload ||
         contextInfo?.conversionData;
 
@@ -195,14 +206,8 @@ export async function syncEvolutionRecentMessages(
         contextInfo?.conversionSource === 'FB_Ads' ||
         Boolean(ctwaPayload);
 
-      // Filter relevant leads for this pedagogical tenant
-      const isPedagogical =
-        isFBAds ||
-        Boolean(messageContent && (messageContent.includes('Sílabas') || messageContent.includes('Silabas') || messageContent.includes('Jogo da Memória') || messageContent.includes('material') || messageContent.includes('PIX') || messageContent.includes('arquivo') || messageContent.includes('pedagogico')));
-
-      if (!isPedagogical && !isFBAds) {
-        continue;
-      }
+      // The CRM is the WhatsApp conversation inbox. New direct conversations
+      // must be visible even when Evolution does not preserve the ad metadata.
 
       const platform =
         contextInfo?.entryPointConversionApp ||
@@ -221,22 +226,34 @@ export async function syncEvolutionRecentMessages(
         } catch (e) {}
       }
 
-      const campaignName = adDetails?.campaignName || '[Eng] [Jogo da Memória das Silabas] [10.11]';
-      const campaignId = adDetails?.campaignId || (isFBAds ? '120250535297470101' : undefined);
-      const adsetName = adDetails?.adsetName || (isFBAds ? '[25-40] [Mulheres]' : undefined);
+      // Tenant-specific defaults: never label an Amadeus lead with the
+      // Pedagógicos campaign/pixel just because the Meta lookup failed.
+      const campaignName =
+        adDetails?.campaignName || (isPedagogicos ? '[Eng] [Jogo da Memória das Silabas] [10.11]' : undefined);
+      const campaignId =
+        adDetails?.campaignId || (isFBAds && isPedagogicos ? '120250535297470101' : undefined);
+      const adsetName = adDetails?.adsetName || (isFBAds && isPedagogicos ? '[25-40] [Mulheres]' : undefined);
       const adsetId = adDetails?.adsetId;
       const adTitle = contextInfo?.externalAdReply?.title;
-      const adName = adDetails?.adName || (adTitle ? `${adTitle} - Jogo da Memória` : '01 - Jogo da Memória das Sílabas');
+      const adName =
+        adDetails?.adName ||
+        (isPedagogicos ? (adTitle ? `${adTitle} - Jogo da Memória` : '01 - Jogo da Memória das Sílabas') : adTitle);
       const adId = adDetails?.adId || sourceId;
-      const pixelId = adDetails?.pixelId || (isFBAds ? '1838816967308658' : undefined);
-      const pageId = adDetails?.pageId || (isFBAds ? '560563063815546' : undefined);
+      const pixelId = adDetails?.pixelId || companyMeta?.pixel_id;
+      const pageId = adDetails?.pageId || companyMeta?.page_id;
 
       const msgTime = lm?.messageTimestamp
         ? new Date(lm.messageTimestamp * 1000).toISOString()
         : chat.updatedAt || new Date().toISOString();
 
-      // Check if lead already exists
-      const existing = existingLeads.find((l) => l.phone === rawPhone || (l.id && l.id.includes(rawPhone)));
+      // Check if lead already exists for this tenant only
+      const existing = existingLeads.find(
+        (l) =>
+          l.company_id === companyId &&
+          (l.phone === rawPhone ||
+            (lid && l.lid === lid) ||
+            (l.id && l.id.includes(rawPhone)))
+      );
 
       if (!existing) {
         const leadId = `lead_wa_${rawPhone}_${lm?.id || Date.now()}`;
@@ -246,6 +263,7 @@ export async function syncEvolutionRecentMessages(
           stage_id: 'stage_1',
           name: (pushName && pushName !== 'Você') ? pushName : `Lead ${rawPhone.slice(-4)}`,
           phone: rawPhone,
+          lid,
           is_organic: !isFBAds,
           ctwa_clid: ctwaPayload || undefined,
           source_id: sourceId || undefined,
@@ -258,7 +276,7 @@ export async function syncEvolutionRecentMessages(
           ad_name: isFBAds ? adName : undefined,
           pixel_id: pixelId,
           page_id: pageId,
-          product_name: 'Jogo da Memória das Sílabas',
+          product_name: isPedagogicos ? 'Jogo da Memória das Sílabas' : undefined,
           lead_submitted_sent: false,
           sale_amount: 0,
           currency: 'BRL',
@@ -271,10 +289,12 @@ export async function syncEvolutionRecentMessages(
           updated_at: new Date().toISOString(),
         };
 
-        // Dispatch Meta CAPI LeadSubmitted if CTWA
-        if (isFBAds && ctwaPayload) {
+        // Dispatch Meta CAPI LeadSubmitted only for tenants with a configured
+        // Meta integration and pixel. Otherwise the event would be attributed
+        // to the Pedagógicos pixel.
+        if (isFBAds && ctwaPayload && companyMeta?.access_token && newLead.pixel_id) {
           try {
-            const capiRes = await MetaConversionsService.sendLeadSubmitted(newLead);
+            const capiRes = await MetaConversionsService.sendLeadSubmitted(newLead, companyMeta);
             if (capiRes.success) {
               newLead.lead_submitted_sent = true;
               newLead.lead_submitted_at = new Date().toISOString();
@@ -297,6 +317,11 @@ export async function syncEvolutionRecentMessages(
           updated = true;
         }
 
+        if (lid && !existing.lid) {
+          existing.lid = lid;
+          updated = true;
+        }
+
         // Only attach CTWA if genuinely discovered from ad payload and not already set
         if (!existing.ctwa_clid && ctwaPayload && !existing.is_organic) {
           existing.ctwa_clid = ctwaPayload;
@@ -306,11 +331,11 @@ export async function syncEvolutionRecentMessages(
           existing.is_organic = false;
           existing.platform = platform === 'facebook' ? 'facebook' : 'instagram';
           existing.campaign_id = campaignId || existing.campaign_id;
-          existing.campaign_name = campaignName;
+          existing.campaign_name = campaignName || existing.campaign_name;
           existing.adset_id = adsetId || existing.adset_id;
           existing.adset_name = adsetName || existing.adset_name;
           existing.ad_id = adId || existing.ad_id;
-          existing.ad_name = adName;
+          existing.ad_name = adName || existing.ad_name;
           updated = true;
         }
 

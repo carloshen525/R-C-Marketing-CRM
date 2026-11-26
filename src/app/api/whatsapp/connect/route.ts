@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { instanceName, apiUrl, apiKey } = body;
+    const { instanceName, apiUrl, apiKey, companyId } = body;
 
     const baseUrl = (apiUrl || process.env.EVOLUTION_API_URL || 'https://prospeccao-evolution01.pesd8y.easypanel.host').replace(/\/+$/, '');
     const key = apiKey || process.env.EVOLUTION_API_KEY || 'X9mK2vQ7LpR8aNc4HsT1yWf6BgZe3JuD';
@@ -14,6 +14,48 @@ export async function POST(req: NextRequest) {
       targetInstance = 'empresa_crm';
     }
     const cleanInstance = encodeURIComponent(targetInstance);
+    const baseWebhookUrl =
+      process.env.EVOLUTION_WEBHOOK_URL ||
+      'https://crm.carloscalio.tech/api/webhooks/evolution';
+    const webhookUrl = companyId
+      ? `${baseWebhookUrl}${baseWebhookUrl.includes('?') ? '&' : '?'}company_id=${encodeURIComponent(companyId)}`
+      : baseWebhookUrl;
+
+    const configureWebhook = async () => {
+      try {
+        const webhookRes = await fetch(`${baseUrl}/webhook/set/${cleanInstance}`, {
+          method: 'POST',
+          headers: {
+            apikey: key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            webhook: {
+              enabled: true,
+              url: webhookUrl,
+              byEvents: false,
+              base64: false,
+              webhookByEvents: false,
+              webhookBase64: false,
+              events: [
+                'MESSAGES_UPSERT',
+                'MESSAGES_UPDATE',
+                'CONNECTION_UPDATE',
+                'QRCODE_UPDATED',
+              ],
+            },
+          }),
+        });
+        if (!webhookRes.ok) {
+          console.warn(
+            '[WhatsApp Connect] Evolution rejected webhook configuration:',
+            await webhookRes.text()
+          );
+        }
+      } catch (error) {
+        console.warn('[WhatsApp Connect] Failed to configure Evolution webhook:', error);
+      }
+    };
 
     // 1. First, check connection state
     try {
@@ -26,6 +68,7 @@ export async function POST(req: NextRequest) {
         const stateData = await stateRes.json();
         const state = stateData?.instance?.state || stateData?.state;
         if (state === 'open') {
+          await configureWebhook();
           return NextResponse.json({
             connected: true,
             status: 'connected',
@@ -61,6 +104,7 @@ export async function POST(req: NextRequest) {
 
       if (createRes.ok) {
         const createData = await createRes.json();
+        await configureWebhook();
         const base64 = createData?.qrcode?.base64 || createData?.base64;
         if (base64) {
           return NextResponse.json({
@@ -94,6 +138,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await connectRes.json();
+    await configureWebhook();
     const base64 = data?.base64 || data?.qrcode?.base64;
     const isStateOpen = data?.instance?.state === 'open';
 

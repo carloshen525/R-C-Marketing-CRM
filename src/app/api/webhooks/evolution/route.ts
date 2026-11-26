@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MetaConversionsService } from '@/lib/meta/conversions-api.service';
 import { MetaGraphApiService } from '@/lib/meta/graph-api.service';
 import { getStoredLeads, saveLead, saveMessage } from '@/lib/server/leads-storage';
-import { Lead, Message } from '@/lib/types';
+import { resolveCompanyIdFromInstance } from '@/lib/server/tenant-resolver';
+import { initialMetaIntegrations } from '@/lib/initial-data';
+import { Message } from '@/lib/types';
 import { mapEvolutionWebhook, extractMoneyValues } from '@/lib/meta/tracking-utils';
 
 /**
@@ -26,14 +28,37 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const event = body?.event || body?.type || 'Message';
-    const instance = body?.instanceName || body?.instance || 'Carlos1';
+    const instance =
+      body?.instanceName ||
+      (typeof body?.instance === 'string'
+        ? body.instance
+        : body?.instance?.instanceName || body?.instance?.name) ||
+      'Carlos1';
+    const { searchParams } = new URL(req.url);
+    const companyIdFromUrl = searchParams.get('company_id');
+    const companyIdFromInstance = resolveCompanyIdFromInstance(instance);
+    // The instance is authoritative; the URL param is a fallback for custom
+    // instance names that do not match a tenant slug.
+    const resolvedCompanyId = companyIdFromInstance || companyIdFromUrl;
 
-    console.log(`[Webhook Evolution] Received event: ${event} for instance: ${instance}`);
+    console.log(
+      `[Webhook Evolution] Received event: ${event} for instance: ${instance} (company: ${resolvedCompanyId || 'unknown'})`
+    );
 
     // Ignore connection update events cleanly
     if (event === 'CONNECTION_UPDATE' || event === 'connection.update') {
       const state = body.data?.state || body.data?.status;
       return NextResponse.json({ status: 'connection_updated', state });
+    }
+
+    // Group chats are not CRM leads.
+    const rawJid =
+      body?.data?.key?.remoteJid ||
+      body?.data?.Info?.Chat ||
+      body?.data?.Info?.Sender ||
+      '';
+    if (typeof rawJid === 'string' && rawJid.includes('@g.us')) {
+      return NextResponse.json({ status: 'ignored', reason: 'group_chat' });
     }
 
     // Map incoming webhook payload using the unified extractor
@@ -49,15 +74,30 @@ export async function POST(req: NextRequest) {
     }
 
     const existingLeads = getStoredLeads();
-    // Look up lead by phone or LID
+    // Look up lead by phone or LID, scoped to the tenant that owns the
+    // instance so the same number can exist in two different CRMs.
     let lead = existingLeads.find(
       (l) =>
-        l.phone === mapped.telefone ||
-        (mapped.lid && l.lid === mapped.lid) ||
-        (l.id && l.id.includes(mapped.telefone))
+        (!resolvedCompanyId || l.company_id === resolvedCompanyId) &&
+        (l.phone === mapped.telefone ||
+          (mapped.lid && l.lid === mapped.lid) ||
+          (l.id && l.id.includes(mapped.telefone)))
     );
 
-    const companyId = lead?.company_id || 'comp_pedagogicos';
+    const companyId = lead?.company_id || resolvedCompanyId;
+    if (!companyId) {
+      console.warn(
+        `[Webhook Evolution] Instance "${instance}" is not mapped to any company. Ignoring to avoid cross-tenant leak.`
+      );
+      return NextResponse.json({
+        status: 'ignored',
+        reason: 'unknown_instance_company',
+        instance,
+      });
+    }
+
+    const companyMeta = initialMetaIntegrations[companyId];
+    const isPedagogicos = companyId === 'comp_pedagogicos';
     const leadId = lead?.id || `lead_wa_${mapped.telefone}_${Date.now()}`;
 
     // =========================================================================
@@ -78,7 +118,7 @@ export async function POST(req: NextRequest) {
             lid: mapped.lid || undefined,
             is_organic: true,
             platform: 'organic',
-            product_name: 'Jogo da Memória das Sílabas',
+            product_name: isPedagogicos ? 'Jogo da Memória das Sílabas' : undefined,
             lead_submitted_sent: false,
             sale_amount: 0,
             currency: 'BRL',
@@ -115,14 +155,16 @@ export async function POST(req: NextRequest) {
         adDetails = await MetaGraphApiService.getAdDetails(mapped.source_id);
       }
 
-      const campaignName = adDetails?.campaignName || '[Eng] [Jogo da Memória das Silabas] [10.11]';
-      const campaignId = adDetails?.campaignId || '120250535297470101';
-      const adsetName = adDetails?.adsetName || '[25-40] [Mulheres]';
+      // Never fall back to the Pedagógicos campaign/pixel for another tenant.
+      const campaignName =
+        adDetails?.campaignName || (isPedagogicos ? '[Eng] [Jogo da Memória das Silabas] [10.11]' : undefined);
+      const campaignId = adDetails?.campaignId || (isPedagogicos ? '120250535297470101' : undefined);
+      const adsetName = adDetails?.adsetName || (isPedagogicos ? '[25-40] [Mulheres]' : undefined);
       const adsetId = adDetails?.adsetId;
-      const adName = adDetails?.adName || '01 - Jogo da Memória das Sílabas';
+      const adName = adDetails?.adName || (isPedagogicos ? '01 - Jogo da Memória das Sílabas' : undefined);
       const adId = adDetails?.adId || mapped.source_id;
-      const pixelId = adDetails?.pixelId || '1838816967308658';
-      const pageId = adDetails?.pageId || '560563063815546';
+      const pixelId = adDetails?.pixelId || companyMeta?.pixel_id;
+      const pageId = adDetails?.pageId || companyMeta?.page_id;
 
       let isNewLead = false;
 
@@ -148,7 +190,7 @@ export async function POST(req: NextRequest) {
           ad_name: adName,
           pixel_id: pixelId,
           page_id: pageId,
-          product_name: 'Jogo da Memória das Sílabas',
+          product_name: isPedagogicos ? 'Jogo da Memória das Sílabas' : undefined,
           lead_submitted_sent: false,
           sale_amount: 0,
           currency: 'BRL',
@@ -179,10 +221,11 @@ export async function POST(req: NextRequest) {
         lead.updated_at = new Date().toISOString();
       }
 
-      // Enviar conversão de LeadSubmitted para a Meta CAPI
-      if (!lead.lead_submitted_sent) {
-        console.log(`[Webhook Evolution] Sending LeadSubmitted to Meta Pixel ${pixelId} for lead ${lead.phone}...`);
-        const metaResult = await MetaConversionsService.sendLeadSubmitted(lead);
+      // Enviar conversão de LeadSubmitted para a Meta CAPI somente quando a
+      // empresa tem pixel/token próprios configurados.
+      if (!lead.lead_submitted_sent && companyMeta?.access_token && lead.pixel_id) {
+        console.log(`[Webhook Evolution] Sending LeadSubmitted to Meta Pixel ${lead.pixel_id} for lead ${lead.phone}...`);
+        const metaResult = await MetaConversionsService.sendLeadSubmitted(lead, companyMeta);
         if (metaResult?.success) {
           lead.lead_submitted_sent = true;
           lead.lead_submitted_at = new Date().toISOString();
@@ -251,23 +294,33 @@ export async function POST(req: NextRequest) {
         if (adDetails?.pageId) lead.page_id = adDetails.pageId;
       }
 
-      // Envia dados de compra para a Meta CAPI
+      // Envia dados de compra para a Meta CAPI somente quando a empresa tem
+      // integração Meta configurada.
       if (!lead.purchase_sent) {
-        const purchaseResult = await MetaConversionsService.sendPurchase(lead, {
-          amount: totalAmount,
-          currency: 'BRL',
-          productName: lead.product_name || 'Jogo da Memória das Sílabas',
-          saleDate: lead.sale_date,
-        });
-
-        if (purchaseResult.success) {
-          lead.purchase_sent = true;
-          lead.purchase_sent_at = new Date().toISOString();
-          lead.purchase_meta_status = 'sent';
-          lead.purchase_response_id = purchaseResult.fbtraceId || purchaseResult.responseId;
-        } else {
+        if (!companyMeta?.access_token || !lead.pixel_id) {
           lead.purchase_meta_status = 'failed';
-          lead.purchase_meta_error = purchaseResult.errorMessage;
+          lead.purchase_meta_error = 'Integração Meta não configurada para esta empresa.';
+        } else {
+          const purchaseResult = await MetaConversionsService.sendPurchase(
+            lead,
+            {
+              amount: totalAmount,
+              currency: 'BRL',
+              productName: lead.product_name || 'Produto',
+              saleDate: lead.sale_date,
+            },
+            companyMeta
+          );
+
+          if (purchaseResult.success) {
+            lead.purchase_sent = true;
+            lead.purchase_sent_at = new Date().toISOString();
+            lead.purchase_meta_status = 'sent';
+            lead.purchase_response_id = purchaseResult.fbtraceId || purchaseResult.responseId;
+          } else {
+            lead.purchase_meta_status = 'failed';
+            lead.purchase_meta_error = purchaseResult.errorMessage;
+          }
         }
       }
 
