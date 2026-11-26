@@ -136,6 +136,19 @@ export const initialMetaIntegrations: Record<string, MetaIntegration> = {
     created_at: T_NOW,
     updated_at: T_NOW,
   },
+  comp_amadeus: {
+    id: 'meta_amadeus',
+    company_id: 'comp_amadeus',
+    tenant_id: 'comp_amadeus',
+    pixel_id: '2041232726494699',
+    access_token: '',
+    page_id: '551732564683424',
+    graph_api_version: 'v25.0',
+    last_conversion_sent_at: 'Nenhuma conversão enviada',
+    is_active: false,
+    created_at: T_NOW,
+    updated_at: T_NOW,
+  },
 };
 
 export const defaultPipelineStages: PipelineStage[] = [

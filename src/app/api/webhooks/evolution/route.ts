@@ -3,7 +3,8 @@ import { MetaConversionsService } from '@/lib/meta/conversions-api.service';
 import { MetaGraphApiService } from '@/lib/meta/graph-api.service';
 import { getStoredLeads, saveLead, saveMessage } from '@/lib/server/leads-storage';
 import { resolveCompanyIdFromInstance } from '@/lib/server/tenant-resolver';
-import { initialMetaIntegrations, initialWhatsAppInstances } from '@/lib/initial-data';
+import { initialWhatsAppInstances } from '@/lib/initial-data';
+import { getCompanyMetaIntegration } from '@/lib/server/meta-config';
 import { Message } from '@/lib/types';
 import { mapEvolutionWebhook, extractMoneyValues } from '@/lib/meta/tracking-utils';
 
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const companyMeta = initialMetaIntegrations[companyId];
+    const companyMeta = getCompanyMetaIntegration(companyId);
     const isPedagogicos = companyId === 'comp_pedagogicos';
     const leadId = lead?.id || `lead_wa_${mapped.telefone}_${Date.now()}`;
 
@@ -154,8 +155,11 @@ export async function POST(req: NextRequest) {
       console.log(`[Webhook Evolution] CTWA Detected! Source ID: ${mapped.source_id}, Clid: ${mapped.ctwaclid?.substring(0, 20)}...`);
 
       let adDetails = null;
-      if (mapped.source_id) {
-        adDetails = await MetaGraphApiService.getAdDetails(mapped.source_id);
+      if (mapped.source_id && companyMeta?.access_token) {
+        adDetails = await MetaGraphApiService.getAdDetails(
+          mapped.source_id,
+          companyMeta.access_token
+        );
       }
 
       // Never fall back to the Pedagógicos campaign/pixel for another tenant.
@@ -291,8 +295,11 @@ export async function POST(req: NextRequest) {
       lead.last_interaction_at = new Date().toISOString();
 
       // Ensure page_id and pixel_id are loaded if missing
-      if ((!lead.pixel_id || !lead.page_id) && lead.source_id) {
-        const adDetails = await MetaGraphApiService.getAdDetails(lead.source_id);
+      if ((!lead.pixel_id || !lead.page_id) && lead.source_id && companyMeta?.access_token) {
+        const adDetails = await MetaGraphApiService.getAdDetails(
+          lead.source_id,
+          companyMeta.access_token
+        );
         if (adDetails?.pixelId) lead.pixel_id = adDetails.pixelId;
         if (adDetails?.pageId) lead.page_id = adDetails.pageId;
       }

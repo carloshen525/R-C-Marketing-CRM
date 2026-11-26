@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { Lead, Message } from '../types';
-import { initialMetaIntegrations, initialWhatsAppInstances } from '../initial-data';
+import { initialWhatsAppInstances } from '../initial-data';
+import { getCompanyMetaIntegration } from './meta-config';
 import { MetaConversionsService } from '../meta/conversions-api.service';
 import { MetaGraphApiService } from '../meta/graph-api.service';
 
@@ -161,7 +162,7 @@ export async function syncEvolutionRecentMessages(
     const directChats = chatsList.filter((c) => c.remoteJid && !c.remoteJid.endsWith('@g.us'));
 
     const existingLeads = getStoredLeads();
-    const companyMeta = initialMetaIntegrations[companyId];
+    const companyMeta = getCompanyMetaIntegration(companyId);
     const isPedagogicos = companyId === 'comp_pedagogicos';
 
     for (const chat of directChats) {
@@ -225,9 +226,9 @@ export async function syncEvolutionRecentMessages(
         contextInfo?.externalAdReply?.source_id;
 
       let adDetails = null;
-      if (sourceId) {
+      if (sourceId && companyMeta?.access_token) {
         try {
-          adDetails = await MetaGraphApiService.getAdDetails(sourceId);
+          adDetails = await MetaGraphApiService.getAdDetails(sourceId, companyMeta.access_token);
         } catch (e) {}
       }
 
