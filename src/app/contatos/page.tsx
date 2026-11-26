@@ -197,6 +197,7 @@ export default function ContactsPage() {
         name: contact.name || `Contato ${contact.phone.slice(-4)}`,
         phone: contact.phone,
         lid: contact.lid,
+        avatar_url: contact.avatarUrl,
         is_organic: !contact.isAd,
         ctwa_clid: contact.ctwaClid,
         source_id: contact.sourceId,

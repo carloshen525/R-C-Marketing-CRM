@@ -102,6 +102,14 @@ export async function POST(req: NextRequest) {
 
     const companyMeta = getCompanyMetaIntegration(companyId);
     const isPedagogicos = companyId === 'comp_pedagogicos';
+    const webhookAvatar =
+      typeof body?.data?.profilePicUrl === 'string'
+        ? body.data.profilePicUrl
+        : typeof body?.data?.profilePictureUrl === 'string'
+        ? body.data.profilePictureUrl
+        : typeof body?.data?.chat?.profilePicUrl === 'string'
+        ? body.data.chat.profilePicUrl
+        : undefined;
     const leadId = lead?.id || `lead_wa_${mapped.telefone}_${Date.now()}`;
 
     // =========================================================================
@@ -120,6 +128,7 @@ export async function POST(req: NextRequest) {
             name: mapped.rawPushName || `Lead ${mapped.telefone.slice(-4)}`,
             phone: mapped.telefone,
             lid: mapped.lid || undefined,
+            avatar_url: webhookAvatar,
             is_organic: true,
             platform: 'organic',
             product_name: isPedagogicos ? 'Jogo da Memória das Sílabas' : undefined,
@@ -138,6 +147,7 @@ export async function POST(req: NextRequest) {
         } else {
           lead.last_interaction_at = new Date().toISOString();
           if (mapped.lid && !lead.lid) lead.lid = mapped.lid;
+          if (webhookAvatar && !lead.avatar_url) lead.avatar_url = webhookAvatar;
           saveLead(lead);
         }
 
@@ -185,6 +195,7 @@ export async function POST(req: NextRequest) {
           name: mapped.rawPushName || `${mapped.first_name} ${mapped.last_name}`.trim(),
           phone: mapped.telefone,
           lid: mapped.lid || undefined,
+          avatar_url: webhookAvatar,
           is_organic: false,
           ctwa_clid: mapped.ctwaclid,
           source_id: mapped.source_id,
@@ -224,6 +235,7 @@ export async function POST(req: NextRequest) {
         lead.platform = mapped.plataforma === 'facebook' ? 'facebook' : 'instagram';
         lead.is_organic = false;
         lead.lid = mapped.lid || lead.lid;
+        if (webhookAvatar && !lead.avatar_url) lead.avatar_url = webhookAvatar;
         lead.last_interaction_at = new Date().toISOString();
         lead.updated_at = new Date().toISOString();
       }
