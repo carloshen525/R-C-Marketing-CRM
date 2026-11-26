@@ -173,6 +173,56 @@ export async function syncEvolutionRecentMessages(
     const companyMeta = getCompanyMetaIntegration(companyId);
     const isPedagogicos = companyId === 'comp_pedagogicos';
 
+    // Remove Pedagógicos defaults that older syncs wrote into other tenants.
+    if (!isPedagogicos) {
+      const pedagogicalDefaults = {
+        campaignName: '[Eng] [Jogo da Memória das Silabas] [10.11]',
+        campaignId: '120250535297470101',
+        adsetName: '[25-40] [Mulheres]',
+        adName: '01 - Jogo da Memória das Sílabas',
+        pixelId: '1838816967308658',
+        pageId: '560563063815546',
+        productName: 'Jogo da Memória das Sílabas',
+      };
+
+      for (const lead of existingLeads) {
+        if (lead.company_id !== companyId) continue;
+
+        let changed = false;
+
+        if (lead.campaign_name === pedagogicalDefaults.campaignName) {
+          lead.campaign_name = undefined;
+          changed = true;
+        }
+        if (lead.campaign_id === pedagogicalDefaults.campaignId) {
+          lead.campaign_id = undefined;
+          changed = true;
+        }
+        if (lead.adset_name === pedagogicalDefaults.adsetName) {
+          lead.adset_name = undefined;
+          changed = true;
+        }
+        if (lead.ad_name === pedagogicalDefaults.adName) {
+          lead.ad_name = undefined;
+          changed = true;
+        }
+        if (lead.product_name === pedagogicalDefaults.productName) {
+          lead.product_name = undefined;
+          changed = true;
+        }
+        if (lead.pixel_id === pedagogicalDefaults.pixelId && companyMeta?.pixel_id) {
+          lead.pixel_id = companyMeta.pixel_id;
+          changed = true;
+        }
+        if (lead.page_id === pedagogicalDefaults.pageId && companyMeta?.page_id) {
+          lead.page_id = companyMeta.page_id;
+          changed = true;
+        }
+
+        if (changed) saveLead(lead);
+      }
+    }
+
     for (const chat of directChats) {
       const lm = chat.lastMessage;
       const key = lm?.key;

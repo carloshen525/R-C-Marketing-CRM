@@ -95,7 +95,7 @@ export default function DashboardPage() {
       leads.forEach((l) => {
         const campName =
           l.campaign_name ||
-          (l.is_organic ? 'Tráfego Orgânico / Direto' : '[Eng] [Jogo da Memória das Silabas] [10.11]');
+          (l.is_organic ? 'Tráfego Orgânico / Direto' : 'Campanha Meta Ads');
         const campId = l.campaign_id || 'camp_1';
         if (!campMap.has(campName)) {
           campMap.set(campName, { id: campId, name: campName, leads: 0, sales: 0, revenue: 0 });
@@ -120,7 +120,7 @@ export default function DashboardPage() {
       // 4. Dynamic Top Ads ranking
       const adMap = new Map<string, { id: string; name: string; campaign: string; revenue: number; sales: number }>();
       leads.forEach((l) => {
-        const adName = l.ad_name || (l.is_organic ? 'Mensagem Direta' : '01 - Jogo da Memória das Sílabas');
+        const adName = l.ad_name || (l.is_organic ? 'Mensagem Direta' : 'Anúncio Meta Ads');
         const campName = l.campaign_name || 'Campanha Meta Ads';
         if (!adMap.has(adName)) {
           adMap.set(adName, { id: `ad_${adName}`, name: adName, campaign: campName, revenue: 0, sales: 0 });
