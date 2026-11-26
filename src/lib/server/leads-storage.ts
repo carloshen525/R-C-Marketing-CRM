@@ -314,20 +314,34 @@ export async function syncEvolutionRecentMessages(
           updated = true;
         }
 
-        // Only attach CTWA if genuinely discovered from ad payload and not already set
-        if (!existing.ctwa_clid && ctwaPayload && !existing.is_organic) {
-          existing.ctwa_clid = ctwaPayload;
+        // Attach/refresh CTWA metadata even for leads created by an earlier
+        // sync that did not have Meta credentials available yet.
+        if (isFBAds) {
+          if (!existing.ctwa_clid && ctwaPayload) existing.ctwa_clid = ctwaPayload;
           existing.source_id = sourceId || existing.source_id;
-          existing.pixel_id = pixelId || existing.pixel_id;
-          existing.page_id = pageId || existing.page_id;
           existing.is_organic = false;
           existing.platform = platform === 'facebook' ? 'facebook' : 'instagram';
-          existing.campaign_id = campaignId || existing.campaign_id;
-          existing.campaign_name = campaignName || existing.campaign_name;
-          existing.adset_id = adsetId || existing.adset_id;
-          existing.adset_name = adsetName || existing.adset_name;
-          existing.ad_id = adId || existing.ad_id;
-          existing.ad_name = adName || existing.ad_name;
+          updated = true;
+        }
+
+        if (adDetails) {
+          existing.campaign_id = adDetails.campaignId || existing.campaign_id;
+          existing.campaign_name = adDetails.campaignName || existing.campaign_name;
+          existing.adset_id = adDetails.adsetId || existing.adset_id;
+          existing.adset_name = adDetails.adsetName || existing.adset_name;
+          existing.ad_id = adDetails.adId || existing.ad_id;
+          existing.ad_name = adDetails.adName || existing.ad_name;
+          if (adDetails.pixelId) existing.pixel_id = adDetails.pixelId;
+          if (adDetails.pageId) existing.page_id = adDetails.pageId;
+          updated = true;
+        }
+
+        if (!existing.pixel_id && companyMeta?.pixel_id) {
+          existing.pixel_id = companyMeta.pixel_id;
+          updated = true;
+        }
+        if (!existing.page_id && companyMeta?.page_id) {
+          existing.page_id = companyMeta.page_id;
           updated = true;
         }
 
