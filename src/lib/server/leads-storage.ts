@@ -260,6 +260,20 @@ export async function syncEvolutionRecentMessages(
             (l.id && l.id.includes(rawPhone)))
       );
 
+      // The last message may no longer carry the ad context. For existing
+      // leads, use the source_id already stored to enrich campaign data.
+      if (existing && !adDetails && companyMeta?.access_token) {
+        const lookupSourceId = sourceId || existing.source_id;
+        if (lookupSourceId) {
+          try {
+            adDetails = await MetaGraphApiService.getAdDetails(
+              lookupSourceId,
+              companyMeta.access_token
+            );
+          } catch (e) {}
+        }
+      }
+
       if (!existing) {
         const leadId = `lead_wa_${rawPhone}_${lm?.id || Date.now()}`;
         const newLead: Lead = {
