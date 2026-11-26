@@ -345,7 +345,10 @@ export default function CRMKanbanPage() {
                             <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 transition-colors">
                               {lead.name}
                             </h4>
-                            <p className="text-[11px] text-zinc-500 font-mono">
+                            <p
+                              className="text-[11px] text-zinc-500 font-mono truncate"
+                              title={lead.phone}
+                            >
                               {formatPhone(lead.phone)}
                             </p>
                           </div>

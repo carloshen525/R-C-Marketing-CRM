@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useCRM } from '@/lib/crm-context';
-import { formatCurrencyBRL, formatPhone, formatRelativeTime } from '@/lib/utils';
+import { formatCurrencyBRL, formatPhone, formatRelativeTime, isLidNumber } from '@/lib/utils';
 import {
   X,
   Phone,
@@ -48,6 +48,7 @@ export function LeadDrawer() {
   const currentStage = stages.find((s) => s.id === selectedLead.stage_id);
   const chatMessages = conversations[selectedLead.id] || [];
   const leadMetaLogs = metaLogs.filter((l) => l.lead_id === selectedLead.id);
+  const isLidPhone = isLidNumber(selectedLead.phone);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,7 +110,7 @@ export function LeadDrawer() {
                 )}
               </div>
               <p className="text-xs text-zinc-500 flex items-center gap-2 mt-0.5">
-                <span>{formatPhone(selectedLead.phone)}</span>
+                <span title={selectedLead.phone}>{formatPhone(selectedLead.phone)}</span>
                 <span>•</span>
                 <span>Criado {formatRelativeTime(selectedLead.created_at)}</span>
               </p>
@@ -238,12 +239,20 @@ export function LeadDrawer() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40">
                   <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider block mb-1">
-                    Telefone WhatsApp
+                    {isLidPhone ? 'Identificador WhatsApp (LID)' : 'Telefone WhatsApp'}
                   </span>
-                  <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                    <Phone className="w-4 h-4 text-emerald-600" />
-                    {formatPhone(selectedLead.phone)}
+                  <div
+                    className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100"
+                    title={selectedLead.phone}
+                  >
+                    <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="truncate">{formatPhone(selectedLead.phone)}</span>
                   </div>
+                  {isLidPhone && (
+                    <p className="text-[10px] text-zinc-500 mt-1">
+                      Contato sem telefone público; o WhatsApp expõe apenas o LID.
+                    </p>
+                  )}
                 </div>
 
                 <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40">

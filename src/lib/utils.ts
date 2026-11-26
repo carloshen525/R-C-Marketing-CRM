@@ -12,9 +12,17 @@ export function formatCurrencyBRL(amount: number): string {
   }).format(amount || 0);
 }
 
+export function isLidNumber(phone: string): boolean {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return digits.length > 13;
+}
+
 export function formatPhone(phone: string): string {
   if (!phone) return '';
   const digits = phone.replace(/\D/g, '');
+  if (digits.length > 13) {
+    return `LID ${digits.slice(0, 4)}…${digits.slice(-4)}`;
+  }
   if (digits.length === 13 && digits.startsWith('55')) {
     const ddd = digits.slice(2, 4);
     const part1 = digits.slice(4, 9);

@@ -79,7 +79,6 @@ function formatContactDate(dateString: string): string {
 
 function displayPhone(contact: ContactItem): string {
   if (!contact.phone) return 'Sem telefone';
-  if (contact.phone.length > 13) return `LID ${contact.phone}`;
   return formatPhone(contact.phone);
 }
 
@@ -511,7 +510,9 @@ export default function ContactsPage() {
                   </div>
 
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-zinc-500">
-                    <span className="font-mono">{displayPhone(contact)}</span>
+                    <span className="font-mono" title={contact.phone}>
+                      {displayPhone(contact)}
+                    </span>
                     {contact.adTitle && (
                       <span className="truncate max-w-[260px]">Anúncio: {contact.adTitle}</span>
                     )}
